@@ -385,8 +385,6 @@ client.on('qr', async (qr) => {
 
     // Salva o QR Code em um arquivo para visualização no navegador
     await handleQrCode(qr);
-
-    console.log('QR Code também disponível na rota /qrcode.');
 });
 
 
