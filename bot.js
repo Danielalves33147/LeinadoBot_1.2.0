@@ -378,20 +378,17 @@ cleanDebugLog();
 // Eventos do cliente
 // Evento para exibir o QR Code
 client.on('qr', async (qr) => {
-    console.log('Novo QR Code gerado! Atualizando...');
-
-    // Exibe o QR Code no terminal em tamanho reduzido
-    qrcodeTerminal.generate(qr, { small: true }, (qrText) => {
-        console.log('\n----- QR Code -----\n');
-        console.log(qrText);
-        console.log('\n-------------------\n');
-    });
+    console.log('Novo QR Code gerado! Copie o texto abaixo e use em um gerador de QR Code:');
+    console.log('----------------------------------------');
+    console.log(qr); // Exibe o texto bruto do QR Code
+    console.log('----------------------------------------');
 
     // Salva o QR Code em um arquivo para visualização no navegador
     await handleQrCode(qr);
 
     console.log('QR Code também disponível na rota /qrcode.');
 });
+
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso!');
