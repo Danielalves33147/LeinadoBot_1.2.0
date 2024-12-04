@@ -391,10 +391,13 @@ const cleanDebugLog = () => {
 // Antes de iniciar o cliente:
 cleanDebugLog();
 
-// Eventos do cliente
-client.on('qr', async (qr) => {
-    await handleQrCode(qr);
+client.on('qr', (qr) => {
+    console.log('QR Code gerado. Copie o texto abaixo e cole em um gerador de QR Code:');
+    console.log(qr); // Exibe o texto do QR Code no terminal
 });
+
+
+
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso!');
