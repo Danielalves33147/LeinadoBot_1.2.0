@@ -382,9 +382,6 @@ client.on('qr', async (qr) => {
     console.log('----------------------------------------');
     console.log(qr); // Exibe o texto bruto do QR Code
     console.log('----------------------------------------');
-
-    // Salva o QR Code em um arquivo para visualização no navegador
-    await handleQrCode(qr);
 });
 
 
