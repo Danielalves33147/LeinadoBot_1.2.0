@@ -4,7 +4,7 @@ const qrcode = require('qrcode');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-
+const qrcodeTerminal = require('qrcode-terminal'); // Adicione este pacote
 const puppeteer = require('puppeteer-core');
 
 const axios = require('axios');
@@ -376,8 +376,18 @@ const cleanDebugLog = () => {
 cleanDebugLog();
 
 // Eventos do cliente
+// Evento para exibir o QR Code
 client.on('qr', async (qr) => {
+    console.log('Novo QR Code gerado! Atualizando...');
     await handleQrCode(qr);
+
+    // Exibe o QR Code no terminal
+    qrcodeTerminal.generate(qr, { small: true }, (qrText) => {
+        console.log(`\n${qrText}\n`);
+    });
+
+    // Mensagem extra para usuários
+    console.log('Escaneie o QR Code acima para conectar seu WhatsApp.');
 });
 
 client.on('ready', () => {
