@@ -103,7 +103,7 @@ if (!userRoles[DONO]) {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: '/usr/bin/google-chrome-stable', // Caminho do Chrome instalado
+        // executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', // Ajuste o caminho conforme necessário
         headless: true,
         args: [
             '--no-sandbox',
@@ -116,6 +116,7 @@ const client = new Client({
             '--disable-gpu'
         ]
     }
+    
 });
 
 

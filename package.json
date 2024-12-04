@@ -1,18 +1,23 @@
 {
-  "name": "bot2",
+  "name": "whatsapp-bot",
   "version": "1.0.0",
+  "description": "A WhatsApp bot using whatsapp-web.js",
   "main": "bot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "test": "echo \"No tests available yet\""
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "automation"
+  ],
+  "author": "Seu Nome",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "axios": "^1.7.8",
     "express": "^4.21.1",
+    "puppeteer": "^23.10.0",
     "qrcode": "^1.5.4",
     "whatsapp-web.js": "^1.26.0"
   },
