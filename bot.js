@@ -24,6 +24,7 @@ const DONO = '557191165170@c.us'; // Número do Dono
 let perdiCounter = 0;
 
 
+
 // Tabela de pessoas específicas (IDs de usuários)
 const specificUsers = [
     '557191165170@c.us', // Daniel
@@ -118,9 +119,6 @@ const client = new Client({
     }
     
 });
-
-
-
 
 // Gera e salva o QR Code em um arquivo
 const handleQrCode = async (qr) => {
@@ -377,12 +375,11 @@ cleanDebugLog();
 
 // Eventos do cliente
 // Evento para exibir o QR Code
-client.on('qr', async (qr) => {
-    console.log('Novo QR Code gerado! Copie o texto abaixo e use em um gerador de QR Code:');
-    console.log('----------------------------------------');
-    console.log(qr); // Exibe o texto bruto do QR Code
-    console.log('----------------------------------------');
+client.on('qr', (qr) => {
+    console.log('DEBUG: Evento QR acionado.');
+    console.log('QR Code gerado:', qr);
 });
+
 
 
 client.on('ready', () => {
