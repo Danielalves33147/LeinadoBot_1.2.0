@@ -379,15 +379,18 @@ cleanDebugLog();
 // Evento para exibir o QR Code
 client.on('qr', async (qr) => {
     console.log('Novo QR Code gerado! Atualizando...');
-    await handleQrCode(qr);
 
-    // Exibe o QR Code no terminal
+    // Exibe o QR Code no terminal em tamanho reduzido
     qrcodeTerminal.generate(qr, { small: true }, (qrText) => {
-        console.log(`\n${qrText}\n`);
+        console.log('\n----- QR Code -----\n');
+        console.log(qrText);
+        console.log('\n-------------------\n');
     });
 
-    // Mensagem extra para usuários
-    console.log('Escaneie o QR Code acima para conectar seu WhatsApp.');
+    // Salva o QR Code em um arquivo para visualização no navegador
+    await handleQrCode(qr);
+
+    console.log('QR Code também disponível na rota /qrcode.');
 });
 
 client.on('ready', () => {
