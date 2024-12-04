@@ -4,8 +4,6 @@ const qrcode = require('qrcode');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const qrcodeTerminal = require('qrcode-terminal'); // Adicione este pacote
-const puppeteer = require('puppeteer-core');
 
 const axios = require('axios');
 // Configuração da API
@@ -22,6 +20,7 @@ const rolesFilePath = path.join(__dirname, 'userRoles.json');
 const DONO = '557191165170@c.us'; // Número do Dono
 
 let perdiCounter = 0;
+
 
 
 
@@ -100,11 +99,10 @@ if (!userRoles[DONO]) {
     saveRoles();
 }
 
-
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        // executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', // Ajuste o caminho conforme necessário
+        executablePath: process.env.CHROME_BIN || null, // Caminho configurado pelo buildpack
         headless: true,
         args: [
             '--no-sandbox',
@@ -117,8 +115,9 @@ const client = new Client({
             '--disable-gpu'
         ]
     }
-    
 });
+
+
 
 // Gera e salva o QR Code em um arquivo
 const handleQrCode = async (qr) => {
@@ -215,41 +214,60 @@ const handleHelpCommand = (message, senderRole) => {
     message.reply(`📜 *Comandos Disponíveis:* 📜\n${availableCommands}`);
 };
 
-const handleAllCommand = async (message, chat) => {
+const handleAllCommand = async (message) => {
     try {
-        if (!chat.isGroup) {
-            message.reply('O comando "!all" só pode ser usado em grupos.');
+        const chat = await message.getChat(); // Obtém o chat associado à mensagem
+
+        // Verificação alternativa se é grupo
+        const isGroup = chat.id._serialized.endsWith('@g.us');
+        console.log(`Debug: chat.isGroup = ${chat.isGroup}, isGroup (alternativo) = ${isGroup}`);
+
+        if (!isGroup) {
+            console.error('Erro: Tentativa de usar o comando !all fora de um grupo.');
+            await message.reply('O comando "!all" só pode ser usado em grupos.');
             return;
         }
 
-        console.log(`Comando "!all" detectado no grupo: ${chat.name}`);
+        console.log(`Comando "!all" detectado no grupo: ${chat.name || 'Sem Nome'}`);
 
-        // Obtém os participantes do grupo
-        const participants = chat.participants;
+        // Tenta carregar os participantes
+        let participants = chat.participants;
         if (!participants || participants.length === 0) {
-            message.reply('Não foi possível acessar os participantes do grupo.');
+            console.log('Participantes não encontrados, tentando carregar com fetchParticipants...');
+            if (chat.fetchParticipants) {
+                participants = await chat.fetchParticipants(); // Tenta carregar os participantes explicitamente
+            }
+        }
+
+        if (!participants || participants.length === 0) {
+            console.error('Erro: Não foi possível acessar os participantes do grupo.');
+            await message.reply('Não foi possível acessar os participantes do grupo.');
             return;
         }
 
-        // Cria uma lista de menções
-        const mentions = await Promise.all(
-            participants.map(async (participant) => {
-                const contact = await client.getContactById(participant.id._serialized);
-                return contact;
-            })
-        );
+        console.log(`Participantes detectados no grupo "${chat.name}": ${participants.length}`);
 
-        const mentionText = '📢 Menção a todos os membros do grupo!';
-        
+        // Gera a lista de menções
+        const mentions = participants.map((participant) => client.getContactById(participant.id._serialized));
+        const resolvedMentions = await Promise.all(mentions);
+
+        // Cria o texto com as menções
+        const mentionText = resolvedMentions.map((mention) => `@${mention.number}`).join(' ');
+
         // Envia a mensagem mencionando todos os participantes
-        await chat.sendMessage(mentionText, { mentions });
-        console.log(`Menção enviada para os participantes do grupo: ${chat.name}`);
+        await chat.sendMessage(`📢 Menção a todos:\n${mentionText}`, {
+            mentions: resolvedMentions,
+        });
+
+        console.log(`Menção enviada com sucesso para os participantes do grupo "${chat.name}".`);
     } catch (error) {
-        console.error('Erro ao mencionar participantes no grupo:', error);
-        message.reply('Houve um erro ao tentar mencionar todos no grupo.');
+        console.error('Erro ao executar o comando !all:', error);
+        await message.reply('Houve um erro ao tentar mencionar todos no grupo.');
     }
 };
 
+
+ 
 const handleAddCargoCommand = (message, args) => {
     const [userId, roleKey] = args;
     if (!userId || !roles[roleKey]) {
@@ -374,13 +392,9 @@ const cleanDebugLog = () => {
 cleanDebugLog();
 
 // Eventos do cliente
-// Evento para exibir o QR Code
-client.on('qr', (qr) => {
-    console.log('DEBUG: Evento QR acionado.');
-    console.log('QR Code gerado:', qr);
+client.on('qr', async (qr) => {
+    await handleQrCode(qr);
 });
-
-
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso!');
@@ -390,20 +404,25 @@ client.on('message', async (message) => {
     try {
         if (!message.body.startsWith('!')) return;
 
+        // Inicializa o chat
         const chat = await message.getChat();
-        const isGroup = chat.isGroup || chat.id._serialized.endsWith('@g.us');
-        const senderRole = getUserRole(message.author || message.from);
+        const isGroup = chat.id._serialized.endsWith('@g.us'); // Verificação confiável
 
         console.log(`Comando recebido de: ${message.from}`);
         console.log(`Comando: ${message.body}`);
         console.log(`É grupo: ${isGroup}`);
-        console.log(`Cargo do remetente: ${senderRole}`);
+        
+        if (!isGroup) {
+            await message.reply('Este comando só pode ser usado em grupos.');
+            return;
+        }
 
+        // Processar comandos
         const [command, ...args] = message.body.split(' ');
 
         switch (command) {
             case '!all':
-                await handleAllCommand(message, chat);
+                await handleAllCommand(message, isGroup); // Certifique-se de passar 'chat' corretamente
                 break;
 
             case '!dsa':
@@ -472,14 +491,15 @@ client.on('message', async (message) => {
                     handlePingCommand(message);
                     break;
 
-            default:
-                message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
-                break;
+                    default:
+                    message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
+                    break;
+            }
+        } catch (error) {
+            console.error('Erro ao processar a mensagem:', error);
         }
-    } catch (error) {
-        console.error('Erro ao processar a mensagem:', error);
-    }
-});
+    });
+        
 
 // Inicializa o cliente do WhatsApp
 client.initialize();
