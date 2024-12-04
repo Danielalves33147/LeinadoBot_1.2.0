@@ -5,6 +5,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+const puppeteer = require('puppeteer-core');
+
 const axios = require('axios');
 // Configuração da API
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText';
@@ -97,10 +99,12 @@ if (!userRoles[DONO]) {
     saveRoles();
 }
 
+
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: process.env.CHROME_BIN || null, // Caminho configurado pelo buildpack
+        executablePath: '/usr/bin/google-chrome-stable', // Usar o Chrome instalado no Heroku
         headless: true,
         args: [
             '--no-sandbox',
@@ -114,6 +118,7 @@ const client = new Client({
         ]
     }
 });
+
 
 
 
