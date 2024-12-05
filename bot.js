@@ -22,6 +22,7 @@ const DONO = '557191165170@c.us'; // Número do Dono
 let perdiCounter = 0;
 
 
+//const senderRole = getUserRole(message.from); // Obtém o papel do remetente
 
 
 // Tabela de pessoas específicas (IDs de usuários)
@@ -58,14 +59,30 @@ const saveRoles = () => {
 
 const getUserRole = (userId) => {
     const normalizedId = userId.endsWith('@c.us') ? userId : `${userId}@c.us`;
-    if (normalizedId === DONO) return 'Dono'; // Força o Dono a ser reconhecido
-    return userRoles[normalizedId] || 'Recruta';
+
+    // Força o Dono a ter o cargo mais alto
+    if (normalizedId === DONO) return roles.dono;
+
+    // Retorna o cargo do usuário ou Recruta por padrão
+    return userRoles[normalizedId] || roles.recruta;
 };
 
-const isRoleAuthorized = (userRole, requiredRole) => {
+const isRoleAuthorized = (userRole, allowedRoles) => {
     const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō', 'Dono'];
-    return hierarchy.indexOf(userRole) >= hierarchy.indexOf(requiredRole);
+    const userRank = hierarchy.indexOf(userRole);
+
+    if (userRank === -1) {
+        console.error(`Cargo não reconhecido: ${userRole}`);
+        return false;
+    }
+
+    // Verifica se o cargo do usuário está na lista de cargos autorizados ou superior
+    return allowedRoles.some((role) => {
+        const requiredRank = hierarchy.indexOf(role);
+        return userRank >= requiredRank; // O usuário precisa estar no nível ou acima
+    });
 };
+
 
 const fetchGeminiResponse = async (prompt) => {
     try {
@@ -117,7 +134,25 @@ const client = new Client({
     }
 });
 
+const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
+    const chat = await message.getChat(); // Agora o await é válido
+    const isGroup = chat.isGroup;
+    const userId = isGroup ? message.author : message.from;
+    const senderRole = getUserRole(userId); // Cargo do remetente
 
+    if (!isRoleAuthorized(senderRole, allowedRoles)) {
+        message.reply(
+            `❌Acesso negado: Voce tentou usar o comando, mas é apenas ${senderRole}`
+        );
+        console.log(
+            `Acesso negado: ${userId} tentou usar o comando, mas é apenas ${senderRole}.`
+        );
+        return;
+    }
+
+    console.log(`Acesso concedido: ${userId} com cargo ${senderRole}`);
+    callback(); // Executa o comando se autorizado
+};
 
 // Gera e salva o QR Code em um arquivo
 const handleQrCode = async (qr) => {
@@ -265,8 +300,6 @@ const handleAllCommand = async (message) => {
         await message.reply('Houve um erro ao tentar mencionar todos no grupo.');
     }
 };
-
-
  
 const handleAddCargoCommand = (message, args) => {
     const [userId, roleKey] = args;
@@ -376,6 +409,11 @@ const handleListParticipantsCommand = async (message, chat) => {
     }
 };
 
+const handleRanksCommand = (message) => {
+    const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō', 'Dono'];
+    return hierarchy.join('\n');
+};
+
 const cleanDebugLog = () => {
     const debugLogPath = path.join(__dirname, '.wwebjs_auth', 'session', 'Default', 'chrome_debug.log');
     try {
@@ -397,8 +435,6 @@ client.on('qr', (qr) => {
 });
 
 
-
-
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso!');
 });
@@ -409,60 +445,63 @@ client.on('message', async (message) => {
 
         // Inicializa o chat
         const chat = await message.getChat();
-        const isGroup = chat.id._serialized.endsWith('@g.us'); // Verificação confiável
+        const isGroup = chat.isGroup;
 
-        console.log(`Comando recebido de: ${message.from}`);
+        // Obtenha o ID do autor corretamente
+        const userId = isGroup ? message.author : message.from;
+
+        // Obtenha o cargo do autor
+        const senderRole = getUserRole(userId);
+
+        // Logs para depuração
+        console.log(`Comando recebido de: ${userId}`);
         console.log(`Comando: ${message.body}`);
         console.log(`É grupo: ${isGroup}`);
-        
-        if (!isGroup) {
-            await message.reply('Este comando só pode ser usado em grupos.');
-            return;
-        }
+        console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
 
         // Processar comandos
         const [command, ...args] = message.body.split(' ');
 
         switch (command) {
             case '!all':
-                await handleAllCommand(message, isGroup); // Certifique-se de passar 'chat' corretamente
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                    handleAllCommand(message);
+                });
                 break;
 
             case '!dsa':
-                await handleGeminiCommand(message, chat);
+                await executeCommandWithRoleCheck(message, ['Dono'], () => {
+                    handleGeminiCommand(message, chat);
+                });
+                
                 break;
-            
+
             case '!dado':
                 handleDadoCommand(message, args);
                 break;
 
             case '!perdi':
-                handlePerdiCommand(message);
-                // await handleAllCommand(message, chat);
-                break;    
-                
+                await executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handlePerdiCommand(message);
+                });
+                break;
+
             case '!addcargo':
-                if (senderRole !== 'Dono') {
-                    message.reply('Somente o Dono pode atribuir cargos.');
-                    break;
-                }
-                handleAddCargoCommand(message, args);
+                executeCommandWithRoleCheck(message, ['Dono'], () => {
+                    handleAddCargoCommand(message, args);
+                });
                 break;
 
             case '!removecargo':
-                if (senderRole !== 'Dono') {
-                    message.reply('Somente o Dono pode remover cargos.');
-                    break;
-                }
-                handleRemoveCargoCommand(message, args);
+                executeCommandWithRoleCheck(message, ['Dono'], () => {
+                    handleRemoveCargoCommand(message, args);
+                });
                 break;
 
             case '!listarcargos':
-                if (senderRole !== 'Dono') {
-                    message.reply('Somente o Dono pode listar os cargos.');
-                    break;
-                }
-                handleListarCargosCommand(message);
+                executeCommandWithRoleCheck(message, ['Dono'], () => {
+                    handleListarCargosCommand(message);
+                });
                 break;
 
             case '!help':
@@ -470,16 +509,15 @@ client.on('message', async (message) => {
                 break;
 
             case '!todos':
-                    await handleListParticipantsCommand(message, chat);
-                    break;
-                
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handleListParticipantsCommand(message, chat);
+                });
+                break;
 
             case '!sorteio':
-                if (!isRoleAuthorized(senderRole, 'Almirante')) {
-                    message.reply('Você não tem permissão para usar este comando.');
-                    break;
-                }
-                await handleSorteioCommand(message, chat);
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                    handleSorteioCommand(message, chat);
+                });
                 break;
 
             case '!sticker':
@@ -490,18 +528,26 @@ client.on('message', async (message) => {
                 await handleStickerCommand(message);
                 break;
 
-                case '!ping':
-                    handlePingCommand(message);
-                    break;
+            case '!ping':
+                handlePingCommand(message);
+                break;
 
-                    default:
-                    message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
-                    break;
-            }
-        } catch (error) {
-            console.error('Erro ao processar a mensagem:', error);
+            case '!ranks':
+            executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                const ranks = handleRanksCommand();
+                message.reply(`📜Cargos Disponiveis📜\n\n${ranks}`);
+            });
+                break;
+                    
+            default:
+                message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
+                break;
         }
-    });
+    } catch (error) {
+        console.error('Erro ao processar a mensagem:', error);
+    }
+});
+
         
 
 // Inicializa o cliente do WhatsApp
