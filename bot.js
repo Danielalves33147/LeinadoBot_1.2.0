@@ -429,10 +429,19 @@ const cleanDebugLog = () => {
 // Antes de iniciar o cliente:
 cleanDebugLog();
 
-client.on('qr', (qr) => {
+client.on('qr', async (qr) => {
     console.log('QR Code gerado. Copie o texto abaixo e cole em um gerador de QR Code:');
-    console.log(qr); // Exibe o texto do QR Code no terminal
+    console.log(qr);
+
+    try {
+        qrImagePath = path.join(__dirname, 'qrcode.png');
+        await qrcode.toFile(qrImagePath, qr); // Gera o arquivo de imagem
+        qrGenerated = true;
+    } catch (error) {
+        console.error('Erro ao gerar o QR Code:', error);
+    }
 });
+
 
 
 client.on('ready', () => {
@@ -556,11 +565,12 @@ client.initialize();
 // Rota para exibir o QR Code
 app.get('/qrcode', (req, res) => {
     if (qrGenerated && fs.existsSync(qrImagePath)) {
-        res.sendFile(qrImagePath);
+        res.sendFile(qrImagePath); // Envia a imagem do QR Code para o navegador
     } else {
-        res.send('QR Code ainda não gerado. Aguarde...');
+        res.send('<h1>QR Code ainda não gerado. Aguarde...</h1>'); // Mensagem amigável
     }
 });
+
 
 // Evento para detectar erros críticos e reiniciar o cliente
 client.on('disconnected', (reason) => {
