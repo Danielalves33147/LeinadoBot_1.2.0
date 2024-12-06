@@ -60,12 +60,16 @@ const saveRoles = () => {
 const getUserRole = (userId) => {
     const normalizedId = userId.endsWith('@c.us') ? userId : `${userId}@c.us`;
 
-    // Força o Dono a ter o cargo mais alto
+    console.log(`Verificando cargo de: ${normalizedId}`);
+    console.log(`Cargos atuais:`, userRoles);
+
     if (normalizedId === DONO) return roles.dono;
 
-    // Retorna o cargo do usuário ou Recruta por padrão
-    return userRoles[normalizedId] || roles.recruta;
+    const role = userRoles[normalizedId] || roles.recruta;
+    console.log(`Cargo retornado para ${normalizedId}: ${role}`);
+    return role;
 };
+
 
 const isRoleAuthorized = (userRole, allowedRoles) => {
     const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō', 'Dono'];
@@ -142,10 +146,10 @@ const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
 
     if (!isRoleAuthorized(senderRole, allowedRoles)) {
         message.reply(
-            `❌Acesso negado: Voce tentou usar o comando, mas é apenas ${senderRole}`
+            `❌Acesso negado: Voce tentou usar o comando, mas é apenas um ${senderRole}`
         );
         console.log(
-            `Acesso negado: ${userId} tentou usar o comando, mas é apenas ${senderRole}.`
+            `Acesso negado: ${userId} tentou usar o comando, mas é apenas um ${senderRole}.`
         );
         return;
     }
@@ -302,28 +306,50 @@ const handleAllCommand = async (message) => {
 };
  
 const handleAddCargoCommand = (message, args) => {
-    const [userId, roleKey] = args;
-    if (!userId || !roles[roleKey]) {
-        message.reply('Uso correto: !addcargo <número> <cargo>');
+    const [rawUserId, roleKey] = args;
+
+    // Verifica se o cargo existe
+    if (!rawUserId || !roles[roleKey]) {
+        message.reply('Uso correto: !addcargo @usuario <cargo>');
         return;
     }
 
+    // Remove o "@" inicial (se existir) e normaliza o ID
+    const cleanedUserId = rawUserId.startsWith('@') ? rawUserId.slice(1) : rawUserId;
+    const userId = cleanedUserId.endsWith('@c.us') ? cleanedUserId : `${cleanedUserId}@c.us`;
+
+    // Atualiza o cargo no userRoles
     userRoles[userId] = roles[roleKey];
-    saveRoles();
+    saveRoles(); // Salva no arquivo JSON
+
     message.reply(`Cargo "${roles[roleKey]}" atribuído ao usuário ${userId}.`);
+    console.log(`Cargo "${roles[roleKey]}" atribuído a ${userId}`);
 };
 
 const handleRemoveCargoCommand = (message, args) => {
-    const [userId] = args;
-    if (!userId || !userRoles[userId]) {
-        message.reply('Uso correto: !removecargo <número>.');
+    const [rawUserId] = args;
+
+    if (!rawUserId) {
+        message.reply('Uso correto: !removecargo @usuario.');
+        return;
+    }
+
+    // Remove o "@" inicial (se existir) e normaliza o ID
+    const cleanedUserId = rawUserId.startsWith('@') ? rawUserId.slice(1) : rawUserId;
+    const userId = cleanedUserId.endsWith('@c.us') ? cleanedUserId : `${cleanedUserId}@c.us`;
+
+    // Remove o cargo do usuário
+    if (!userRoles[userId]) {
+        message.reply(`O usuário ${userId} não possui cargo atribuído.`);
         return;
     }
 
     delete userRoles[userId];
-    saveRoles();
+    saveRoles(); // Salva a remoção no arquivo JSON
+
     message.reply(`Cargo removido do usuário ${userId}.`);
 };
+
 
 const handleListarCargosCommand = async (message) => {
     const rolesList = await Promise.all(
@@ -342,7 +368,7 @@ const handleListarCargosCommand = async (message) => {
     if (rolesList.length === 0) {
         message.reply('Nenhum usuário possui cargos atribuídos.');
     } else {
-        message.reply(`📜 *Lista de usuários com cargos:* 📜\n${rolesList.join('\n')}`);
+        message.reply(`📜*Lista de usuários com cargos:*📜\n${rolesList.join('\n')}`);
     }
 };
 
@@ -491,7 +517,7 @@ client.on('message', async (message) => {
 
         switch (command) {
             case '!all':
-                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Comandante','Almirante', 'Yonkō', 'Dono'], () => {
                     handleAllCommand(message);
                 });
                 break;
@@ -514,19 +540,19 @@ client.on('message', async (message) => {
                 break;
 
             case '!addcargo':
-                executeCommandWithRoleCheck(message, ['Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō','Dono'], () => {
                     handleAddCargoCommand(message, args);
                 });
                 break;
 
             case '!removecargo':
-                executeCommandWithRoleCheck(message, ['Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō','Dono'], () => {
                     handleRemoveCargoCommand(message, args);
                 });
                 break;
 
             case '!listarcargos':
-                executeCommandWithRoleCheck(message, ['Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō','Dono'], () => {
                     handleListarCargosCommand(message);
                 });
                 break;
