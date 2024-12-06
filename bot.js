@@ -325,17 +325,27 @@ const handleRemoveCargoCommand = (message, args) => {
     message.reply(`Cargo removido do usuário ${userId}.`);
 };
 
-const handleListarCargosCommand = (message) => {
-    const rolesList = Object.entries(userRoles)
-        .map(([userId, role]) => `- ${userId}: ${role}`)
-        .join('\n');
+const handleListarCargosCommand = async (message) => {
+    const rolesList = await Promise.all(
+        Object.entries(userRoles).map(async ([userId, role]) => {
+            try {
+                const contact = await client.getContactById(userId);
+                const contactName = contact.pushname || contact.name || contact.number; // Nome, pushname ou número
+                return `- ${contactName}: ${role}`;
+            } catch (error) {
+                console.error(`Erro ao buscar o contato ${userId}:`, error);
+                return `- ${userId}: ${role}`; // Retorna o número caso não encontre o contato
+            }
+        })
+    );
 
-    if (!rolesList) {
+    if (rolesList.length === 0) {
         message.reply('Nenhum usuário possui cargos atribuídos.');
     } else {
-        message.reply(`Lista de usuários com cargos:\n${rolesList}`);
+        message.reply(`📜 *Lista de usuários com cargos:* 📜\n${rolesList.join('\n')}`);
     }
 };
+
 
 const handleDadoCommand = (message, args) => {
     const faces = parseInt(args[0], 10);
@@ -354,17 +364,25 @@ const handleSorteioCommand = async (message, chat) => {
             return;
         }
 
+        // Lista de participantes do grupo
         const participants = chat.participants;
-        const memberIds = participants.map((participant) => participant.id._serialized);
-        const sorteado = memberIds[Math.floor(Math.random() * memberIds.length)];
 
-        message.reply(`🎉 O sorteado foi: ${sorteado}`);
-        console.log(`Sorteio realizado no grupo: ${chat.name}`);
+        // Seleciona um participante aleatoriamente
+        const sorteado = participants[Math.floor(Math.random() * participants.length)];
+
+        // Obtém informações detalhadas do contato sorteado
+        const contact = await client.getContactById(sorteado.id._serialized);
+        const contactName = contact.pushname || contact.name || contact.number; // Nome, pushname ou número
+
+        // Envia a mensagem com o nome do sorteado
+        message.reply(`🎉 O sorteado foi: ${contactName}`);
+        console.log(`Sorteio realizado no grupo: ${chat.name || 'Sem Nome'}, Sorteado: ${contactName}`);
     } catch (error) {
         console.error('Erro ao realizar o sorteio no grupo:', error);
         message.reply('Houve um erro ao realizar o sorteio.');
     }
 };
+
 
 const handleStickerCommand = async (message) => {
     const media = await message.downloadMedia();
