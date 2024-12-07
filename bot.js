@@ -34,7 +34,6 @@ const specificUsers = [
     '557181766942@c.us'  // Matheus
 ];
 
-
 // Cargos disponíveis
 const roles = {
     recruta: 'Recruta',
@@ -70,7 +69,6 @@ const getUserRole = (userId) => {
     return role;
 };
 
-
 const isRoleAuthorized = (userRole, allowedRoles) => {
     const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō', 'Dono'];
     const userRank = hierarchy.indexOf(userRole);
@@ -86,7 +84,6 @@ const isRoleAuthorized = (userRole, allowedRoles) => {
         return userRank >= requiredRank; // O usuário precisa estar no nível ou acima
     });
 };
-
 
 const fetchGeminiResponse = async (prompt) => {
     try {
@@ -196,7 +193,6 @@ const handleGeminiCommand = async (message, chat) => {
 };
 
 // Variável global para contar o número de vezes que o comando foi acionado
-
 const handlePerdiCommand = async (message) => {
     try {
         // Obtém o chat associado à mensagem
@@ -223,21 +219,26 @@ const handlePerdiCommand = async (message) => {
     }
 };
 
-
 const handleHelpCommand = (message, senderRole) => {
     const commands = {
         Dono: [
-            '!addcargo <número> <cargo> - Atribui um cargo',
-            '!removecargo <número> - Remove um cargo',
-            '!listarcargos - Lista usuários com cargos',
+            '!addcargo <número> <cargo> - Atribui um cargo a um usuário',
+            '!removecargo <número> - Remove o cargo de um usuário',
+            '!listarcargos - Lista usuários com cargos atribuídos',
+            
         ],
         Yonkō: [
             '!all - Marca todos os membros ativos no grupo',
             '!sorteio - Realiza um sorteio no grupo',
+            '!ranks - Mostra a hierarquia de cargos',
         ],
         Almirante: [
             '!sticker - Cria um sticker com a mídia enviada',
-            '!dado <número_de_lados> - Rola um dado',
+            '!todos - Lista todos os membros do grupo com menção',
+        ],
+        Comandante: [
+            '!dado <número_de_lados> - Rola um dado com o número de lados especificado',
+            '!perdi - Conta vezes que o grupo "perdeu" e menciona usuários específicos',
         ],
         Recruta: [
             '!help - Lista os comandos disponíveis',
@@ -245,8 +246,12 @@ const handleHelpCommand = (message, senderRole) => {
         ],
     };
 
+    // Filtrar os comandos que o usuário pode usar com base na hierarquia
+    const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō', 'Dono'];
+    const userRank = hierarchy.indexOf(senderRole);
+
     const availableCommands = Object.entries(commands)
-        .filter(([role]) => isRoleAuthorized(senderRole, role))
+        .filter(([role]) => hierarchy.indexOf(role) <= userRank)
         .flatMap(([_, cmds]) => cmds)
         .join('\n');
 
@@ -304,7 +309,7 @@ const handleAllCommand = async (message) => {
         await message.reply('Houve um erro ao tentar mencionar todos no grupo.');
     }
 };
- 
+
 const handleAddCargoCommand = (message, args) => {
     const [rawUserId, roleKey] = args;
 
@@ -350,7 +355,6 @@ const handleRemoveCargoCommand = (message, args) => {
     message.reply(`Cargo removido do usuário ${userId}.`);
 };
 
-
 const handleListarCargosCommand = async (message) => {
     const rolesList = await Promise.all(
         Object.entries(userRoles).map(async ([userId, role]) => {
@@ -371,7 +375,6 @@ const handleListarCargosCommand = async (message) => {
         message.reply(`📜*Lista de usuários com cargos:*📜\n${rolesList.join('\n')}`);
     }
 };
-
 
 const handleDadoCommand = (message, args) => {
     const faces = parseInt(args[0], 10);
@@ -408,7 +411,6 @@ const handleSorteioCommand = async (message, chat) => {
         message.reply('Houve um erro ao realizar o sorteio.');
     }
 };
-
 
 const handleStickerCommand = async (message) => {
     const media = await message.downloadMedia();
@@ -486,8 +488,6 @@ client.on('qr', async (qr) => {
     }
 });
 
-
-
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso!');
 });
@@ -507,17 +507,16 @@ client.on('message', async (message) => {
         const senderRole = getUserRole(userId);
 
         // Logs para depuração
-        console.log(`Comando recebido de: ${userId}`);
+        console.log(`Comando recebido de: ${userId}, Cargo: ${senderRole}`);
         console.log(`Comando: ${message.body}`);
         console.log(`É grupo: ${isGroup}`);
         console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
-
         // Processar comandos
         const [command, ...args] = message.body.split(' ');
 
         switch (command) {
             case '!all':
-                executeCommandWithRoleCheck(message, ['Comandante','Almirante', 'Yonkō', 'Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
                     handleAllCommand(message);
                 });
                 break;
@@ -526,11 +525,10 @@ client.on('message', async (message) => {
                 await executeCommandWithRoleCheck(message, ['Dono'], () => {
                     handleGeminiCommand(message, chat);
                 });
-                
                 break;
 
             case '!dado':
-                handleDadoCommand(message, args);
+                   handleDadoCommand(message, args);
                 break;
 
             case '!perdi':
@@ -540,19 +538,19 @@ client.on('message', async (message) => {
                 break;
 
             case '!addcargo':
-                executeCommandWithRoleCheck(message, ['Yonkō','Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
                     handleAddCargoCommand(message, args);
                 });
                 break;
 
             case '!removecargo':
-                executeCommandWithRoleCheck(message, ['Yonkō','Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
                     handleRemoveCargoCommand(message, args);
                 });
                 break;
 
             case '!listarcargos':
-                executeCommandWithRoleCheck(message, ['Yonkō','Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
                     handleListarCargosCommand(message);
                 });
                 break;
@@ -578,20 +576,22 @@ client.on('message', async (message) => {
                     message.reply('Envie uma imagem ou vídeo junto com o comando "!sticker" para criar um sticker.');
                     break;
                 }
-                await handleStickerCommand(message);
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                    handleStickerCommand(message);
+                });
                 break;
 
             case '!ping':
-                handlePingCommand(message);
+                    handlePingCommand(message);
                 break;
 
             case '!ranks':
-            executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
-                const ranks = handleRanksCommand();
-                message.reply(`📜Cargos Disponiveis📜\n\n${ranks}`);
-            });
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                    const ranks = handleRanksCommand();
+                    message.reply(`📜Cargos Disponíveis📜\n\n${ranks}`);
+                });
                 break;
-                    
+
             default:
                 message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
                 break;
@@ -600,8 +600,6 @@ client.on('message', async (message) => {
         console.error('Erro ao processar a mensagem:', error);
     }
 });
-
-        
 
 // Inicializa o cliente do WhatsApp
 client.initialize();
@@ -614,7 +612,6 @@ app.get('/qrcode', (req, res) => {
         res.send('<h1>QR Code ainda não gerado. Aguarde...</h1>'); // Mensagem amigável
     }
 });
-
 
 // Evento para detectar erros críticos e reiniciar o cliente
 client.on('disconnected', (reason) => {
