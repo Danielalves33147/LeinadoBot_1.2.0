@@ -221,92 +221,80 @@ const handlePerdiCommand = async (message) => {
 
 const handleHelpCommand = (message, senderRole) => {
     const commands = {
-        Dono: [
-            '!addcargo <número> <cargo> - Atribui um cargo a um usuário',
-            '!removecargo <número> - Remove o cargo de um usuário',
-            '!listarcargos - Lista usuários com cargos atribuídos',
-            
-        ],
         Yonkō: [
-            '!all - Marca todos os membros ativos no grupo',
-            '!sorteio - Realiza um sorteio no grupo',
-            '!ranks - Mostra a hierarquia de cargos',
+            '*!ban* - Remover um usuário do grupo',
+            '*!todos* - Listar participantes',
+            '*!addcargo* <número> <cargo> ',
+            '*!removecargo* <número>',
+            '*!listarcargos* - Listar usuários',
         ],
         Almirante: [
-            '!sticker - Cria um sticker com a mídia enviada',
-            '!todos - Lista todos os membros do grupo com menção',
+            '*!sorteio* - Fazer um sorteio',
+            '*!sticker* - Cria uma figurinha',
         ],
         Comandante: [
-            '!dado <número_de_lados> - Rola um dado com o número de lados especificado',
-            '!perdi - Conta vezes que o grupo "perdeu" e menciona usuários específicos',
+            '*!dado* <número_de_lados>',
+            '*!all* - Marcar todos os membros',
+            '*!ranks* - Mostrar hierarquia',
+            '*!perdi* - Contar "perdi" no grupo',
         ],
         Recruta: [
-            '!help - Lista os comandos disponíveis',
-            '!ping - Verifica o status do bot',
+            '*!help* - Listar comandos',
+            '*!ping* - Status do bot',
         ],
     };
 
-    // Filtrar os comandos que o usuário pode usar com base na hierarquia
-    const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō', 'Dono'];
-    const userRank = hierarchy.indexOf(senderRole);
+    // Hierarquia dos cargos
+    const hierarchy = ['Recruta', 'Comandante', 'Almirante', 'Yonkō'];
 
+    // Ajusta o rank exibido se for Dono
+    const adjustedRole = senderRole === 'Dono' ? 'Yonkō' : senderRole;
+
+    const userRank = hierarchy.indexOf(adjustedRole);
+
+    // Filtrar os comandos com base no cargo do usuário
     const availableCommands = Object.entries(commands)
-        .filter(([role]) => hierarchy.indexOf(role) <= userRank)
-        .flatMap(([_, cmds]) => cmds)
-        .join('\n');
+        .filter(([role]) => hierarchy.indexOf(role) <= userRank) // Comandos que o cargo pode usar
+        .map(([role, cmds]) => {
+            // Cria blocos separados por cargo
+            return `📌 *${role}*\n${cmds.join('\n')}`;
+        })
+        .join('\n\n'); // Separa os blocos com uma linha em branco
 
-    message.reply(`📜 *Comandos Disponíveis:* 📜\n${availableCommands}`);
+    // Envia os comandos disponíveis para o usuário
+    message.reply(`📜 *Comandos Disponíveis (${adjustedRole}):*\n\n${availableCommands}`);
 };
 
 const handleAllCommand = async (message) => {
     try {
-        const chat = await message.getChat(); // Obtém o chat associado à mensagem
+        const chat = await message.getChat();
 
-        // Verificação alternativa se é grupo
-        const isGroup = chat.id._serialized.endsWith('@g.us');
-        console.log(`Debug: chat.isGroup = ${chat.isGroup}, isGroup (alternativo) = ${isGroup}`);
-
-        if (!isGroup) {
-            console.error('Erro: Tentativa de usar o comando !all fora de um grupo.');
-            await message.reply('O comando "!all" só pode ser usado em grupos.');
+        if (!chat.isGroup) {
+            message.reply('O comando "!all" só pode ser usado em grupos.');
             return;
         }
 
-        console.log(`Comando "!all" detectado no grupo: ${chat.name || 'Sem Nome'}`);
+        console.log(`Comando "!all" detectado no grupo: ${chat.name}`);
 
-        // Tenta carregar os participantes
-        let participants = chat.participants;
+        // Obtém os participantes do grupo
+        const participants = chat.participants;
         if (!participants || participants.length === 0) {
-            console.log('Participantes não encontrados, tentando carregar com fetchParticipants...');
-            if (chat.fetchParticipants) {
-                participants = await chat.fetchParticipants(); // Tenta carregar os participantes explicitamente
-            }
-        }
-
-        if (!participants || participants.length === 0) {
-            console.error('Erro: Não foi possível acessar os participantes do grupo.');
-            await message.reply('Não foi possível acessar os participantes do grupo.');
+            message.reply('Não há participantes no grupo.');
             return;
         }
 
-        console.log(`Participantes detectados no grupo "${chat.name}": ${participants.length}`);
+        // Mapeia os contatos para menções
+        const mentions = await Promise.all(
+            participants.map((participant) => client.getContactById(participant.id._serialized))
+        );
 
-        // Gera a lista de menções
-        const mentions = participants.map((participant) => client.getContactById(participant.id._serialized));
-        const resolvedMentions = await Promise.all(mentions);
+        // Envia a mensagem com as menções ocultas
+        await chat.sendMessage('📍​Chamando todo mundo📍​', { mentions });
 
-        // Cria o texto com as menções
-        const mentionText = resolvedMentions.map((mention) => `@${mention.number}`).join(' ');
-
-        // Envia a mensagem mencionando todos os participantes
-        await chat.sendMessage(`📢 Menção a todos:\n${mentionText}`, {
-            mentions: resolvedMentions,
-        });
-
-        console.log(`Menção enviada com sucesso para os participantes do grupo "${chat.name}".`);
+        console.log(`Mensagem com menções invisíveis enviada para o grupo: ${chat.name}`);
     } catch (error) {
         console.error('Erro ao executar o comando !all:', error);
-        await message.reply('Houve um erro ao tentar mencionar todos no grupo.');
+        message.reply('Algo deu errado, tente novamente!');
     }
 };
 
@@ -460,6 +448,57 @@ const handleRanksCommand = (message) => {
     return hierarchy.join('\n');
 };
 
+const handleBanCommand = async (message, args, senderRole) => {
+    try {
+        const chat = await message.getChat();
+
+        if (!chat.isGroup) {
+            message.reply('O comando "!ban" só pode ser usado em grupos.');
+            return;
+        }
+
+        if (args.length === 0 || !args[0].startsWith('@')) {
+            message.reply('Uso correto: !ban @usuario.');
+            return;
+        }
+
+        // Remove o "@" inicial e normaliza o ID do usuário a ser banido
+        const userId = args[0].slice(1) + '@c.us';
+
+        // Verifica se o usuário está no grupo
+        const participant = chat.participants.find((p) => p.id._serialized === userId);
+        if (!participant) {
+            message.reply(`Usuário : ${args[0]} não encontrado.`);
+            return;
+        }
+
+        // Verifica se o remetente tem autorização para banir (Yonkō ou superior)
+        if (!isRoleAuthorized(senderRole, ['Yonkō', 'Dono'])) {
+            message.reply('Você não tem permissão para usar este comando.');
+            return;
+        }
+
+        // Obtém o contato do participante
+        const contact = await client.getContactById(userId);
+
+        // Remove o participante
+        await chat.removeParticipants([userId]);
+
+        // Gera a menção no formato correto usando o participante do grupo
+        const mentionText = `@${contact.id.user}`; // `contact.id.user` é o que o WhatsApp usa para marcação
+
+        // Envia a mensagem com a marcação
+        await chat.sendMessage(`✅ O usuário ${mentionText} foi catar coquinho.`, {
+            mentions: [contact],
+        });
+
+        console.log(`Usuário ${userId} (${mentionText}) removido do grupo.`);
+    } catch (error) {
+        console.error('Erro ao executar o comando !ban:', error);
+        message.reply('❌ Não foi possível remover o usuário. Verifique as permissões e tente novamente.');
+    }
+};
+
 const cleanDebugLog = () => {
     const debugLogPath = path.join(__dirname, '.wwebjs_auth', 'session', 'Default', 'chrome_debug.log');
     try {
@@ -515,87 +554,99 @@ client.on('message', async (message) => {
         const [command, ...args] = message.body.split(' ');
 
         switch (command) {
-            case '!all':
-                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
-                    handleAllCommand(message);
+            case '!ban':
+                // Apenas Yonkō e Dono podem usar
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleBanCommand(message, args, senderRole);
                 });
                 break;
-
-            case '!dsa':
-                await executeCommandWithRoleCheck(message, ['Dono'], () => {
-                    handleGeminiCommand(message, chat);
+        
+            case '!todos':
+                // Apenas Yonkō e acima podem listar participantes
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleListParticipantsCommand(message, chat);
                 });
                 break;
-
-            case '!dado':
-                   handleDadoCommand(message, args);
-                break;
-
-            case '!perdi':
-                await executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
-                    handlePerdiCommand(message);
-                });
-                break;
-
+        
             case '!addcargo':
+                // Apenas Yonkō e Dono podem usar
                 executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
                     handleAddCargoCommand(message, args);
                 });
                 break;
-
+        
             case '!removecargo':
+                // Apenas Yonkō e Dono podem usar
                 executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
                     handleRemoveCargoCommand(message, args);
                 });
                 break;
-
+        
             case '!listarcargos':
+                // Apenas Yonkō e Dono podem listar cargos
                 executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
                     handleListarCargosCommand(message);
                 });
                 break;
-
-            case '!help':
-                handleHelpCommand(message, senderRole);
-                break;
-
-            case '!todos':
-                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
-                    handleListParticipantsCommand(message, chat);
-                });
-                break;
-
+        
             case '!sorteio':
+                // Apenas Almirante e acima podem usar
                 executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
                     handleSorteioCommand(message, chat);
                 });
                 break;
-
+        
             case '!sticker':
-                if (!message.hasMedia) {
-                    message.reply('Envie uma imagem ou vídeo junto com o comando "!sticker" para criar um sticker.');
-                    break;
-                }
+                // Apenas Almirante e acima podem usar
                 executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
                     handleStickerCommand(message);
                 });
                 break;
-
-            case '!ping':
-                    handlePingCommand(message);
-                break;
-
-            case '!ranks':
-                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
-                    const ranks = handleRanksCommand();
-                    message.reply(`📜Cargos Disponíveis📜\n\n${ranks}`);
+        
+            case '!all':
+                // Apenas Comandante e acima podem marcar todos
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handleAllCommand(message);
                 });
                 break;
-
+        
+            case '!dado':
+                // Apenas Comandante e acima podem rolar dados
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handleDadoCommand(message, args);
+                });
+                break;
+        
+            case '!perdi':
+                // Apenas Comandante e acima podem usar
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handlePerdiCommand(message);
+                });
+                break;
+        
+            case '!ranks':
+                // Apenas Comandante e acima podem consultar hierarquia
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    const ranks = handleRanksCommand();
+                    message.reply(`📜 Cargos Disponíveis 📜\n\n${ranks}`);
+                });
+                break;
+        
+            case '!help':
+                // Todos podem acessar o !help
+                handleHelpCommand(message, senderRole);
+                break;
+        
+            case '!ping':
+                // Todos podem usar o !ping
+                handlePingCommand(message);
+                break;
+        
             default:
+                // Comando não reconhecido
                 message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
                 break;
-        }
+        }        
     } catch (error) {
         console.error('Erro ao processar a mensagem:', error);
     }
