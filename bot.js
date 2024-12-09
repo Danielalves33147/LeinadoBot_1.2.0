@@ -1,5 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
+const { Poll } = require('whatsapp-web.js');
+
 const qrcode = require('qrcode');
 const express = require('express');
 const fs = require('fs');
@@ -499,6 +501,51 @@ const handleBanCommand = async (message, args, senderRole) => {
     }
 };
 
+const handleNativePollCommand = async (message) => {
+    const chat = await message.getChat();
+
+    // Verifica se o comando foi enviado em um grupo
+    if (!chat.isGroup) {
+        message.reply('⚠️ O comando "!enquete" só pode ser usado em grupos.');
+        return;
+    }
+
+    // Data atual
+    const currentDate = new Date().toLocaleDateString('pt-BR');
+
+    // Pergunta e opções da enquete
+    const question = `Lista Volta : ${currentDate}`;
+    const options = [
+        'Senai',
+        'Sesi',
+        'IFBA',
+        'IFBA',
+        'IFBA',
+        'UFBA',
+        'Grau',
+        'UNEB',
+        'Derba ',
+        'UNINTER ',
+    ];
+
+    try {
+        // Cria a enquete
+        const poll = new Poll(question, options);
+
+        // Envia a enquete
+        await chat.sendMessage(poll);
+
+        // Abre a janela de chat para garantir que a enquete seja visível
+        await client.interface.openChatWindow(chat.id._serialized);
+
+        console.log('Enquete enviada com sucesso:', { question, options });
+    } catch (error) {
+        console.error('Erro ao enviar a enquete:', error.message);
+        message.reply('❌ Houve um erro ao criar a enquete. Certifique-se de que a API suporta esse recurso.');
+    }
+};
+
+
 const cleanDebugLog = () => {
     const debugLogPath = path.join(__dirname, '.wwebjs_auth', 'session', 'Default', 'chrome_debug.log');
     try {
@@ -641,6 +688,11 @@ client.on('message', async (message) => {
                 // Todos podem usar o !ping
                 handlePingCommand(message);
                 break;
+
+            case '!enquete':
+                handleNativePollCommand(message);
+                break;
+
         
             default:
                 // Comando não reconhecido
