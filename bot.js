@@ -550,18 +550,15 @@ cleanDebugLog();
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
-    if (qrGenerated) return;
-    qrGenerated = true;
-    console.log('QR Code recebido:', qr);
-
-    // Salva o QR Code como imagem
-    try {
-        await qrcode.toFile(qrImagePath, qr);
-        console.log('QR Code salvo com sucesso.');
-    } catch (err) {
-        console.error('Erro ao salvar o QR Code:', err);
+    if (!qrCodeActive) { // Gera o QR apenas se ele ainda não foi processado
+        console.log(`QR Code recebido: ${qr}`);
+        qrCodeActive = true; // Define como ativo para evitar múltiplas execuções
+        await generateQRCode(qr); // Salva a imagem
+    } else {
+        console.log('QR Code já ativo, ignorando...');
     }
 });
+
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso.');
@@ -720,9 +717,9 @@ client.on('disconnected', async (reason) => {
 
 process.on('SIGTERM', () => {
     console.log('Recebido SIGTERM. Finalizando o processo...');
-    client.destroy() // Destroi o cliente do WhatsApp
+    client.destroy() // Fecha a conexão com o WhatsApp
         .then(() => {
-            console.log('Cliente desconectado. Encerrando o processo.');
+            console.log('Cliente desconectado. Finalizando processo.');
             process.exit(0); // Finaliza o processo com sucesso
         })
         .catch((err) => {
@@ -730,6 +727,7 @@ process.on('SIGTERM', () => {
             process.exit(1); // Finaliza com erro
         });
 });
+
 
 // Inicia o servidor Express
 app.listen(PORT, () => {
