@@ -560,8 +560,20 @@ cleanDebugLog();
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
+    if (qrGenerated) return; // Impede a geração duplicada do QR Code
+    qrGenerated = true; // Marca como gerado
+
     console.log('QR Code recebido.');
-    await generateQRCode(qr);
+    console.log(qr); // Exibe o texto do QR Code no terminal para uso manual
+
+    // Gera e salva a imagem do QR Code
+    try {
+        qrImagePath = path.join(__dirname, 'qrcode.png');
+        await qrcode.toFile(qrImagePath, qr); // Gera a imagem do QR Code
+        console.log('QR Code gerado. Escaneie para conectar.');
+    } catch (err) {
+        console.error('Erro ao gerar o QR Code:', err);
+    }
 });
 
 client.on('ready', () => {
