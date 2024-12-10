@@ -718,6 +718,19 @@ client.on('disconnected', async (reason) => {
     }
 });
 
+process.on('SIGTERM', () => {
+    console.log('Recebido SIGTERM. Finalizando o processo...');
+    client.destroy() // Destroi o cliente do WhatsApp
+        .then(() => {
+            console.log('Cliente desconectado. Encerrando o processo.');
+            process.exit(0); // Finaliza o processo com sucesso
+        })
+        .catch((err) => {
+            console.error('Erro ao desconectar o cliente:', err);
+            process.exit(1); // Finaliza com erro
+        });
+});
+
 // Inicia o servidor Express
 app.listen(PORT, () => {
     //console.log(`Servidor Online`);
