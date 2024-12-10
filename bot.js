@@ -16,7 +16,8 @@ const rolesFilePath = path.join(__dirname, 'userRoles.json');
 let qrCodeActive = false;
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
 let perdiCounter = 5;
-const qrImagePath = path.join(__dirname, 'qrcode.png'); // Caminho absoluto
+let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para let
+ // Caminho absoluto
 
 const DONO = '557191165170@c.us'; // Número do Dono
 
@@ -550,20 +551,14 @@ cleanDebugLog();
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
-    if (qrCodeActive) {
+    if (!qrCodeActive) { // Gera o QR apenas se ele ainda não foi processado
+        console.log(`QR Code recebido: ${qr}`);
+        qrCodeActive = true; // Define como ativo para evitar múltiplas execuções
+        await generateQRCode(qr); // Salva a imagem
+    } else {
         console.log('QR Code já ativo, ignorando...');
-        return;
-    }
-
-    try {
-        console.log('QR Code recebido.');
-        await generateQRCode(qr);
-        qrCodeActive = true; // Marca como ativo
-    } catch (error) {
-        console.error('Erro ao processar QR Code:', error);
     }
 });
-
 
 
 client.on('ready', () => {
@@ -734,7 +729,6 @@ process.on('SIGTERM', () => {
         });
 });
 
-console.warn = () => {}; // Ignora todos os warnings
 
 // Inicia o servidor Express
 app.listen(PORT, () => {
