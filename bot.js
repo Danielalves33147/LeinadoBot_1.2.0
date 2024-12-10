@@ -115,18 +115,8 @@ if (!userRoles[DONO]) {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: process.env.CHROME_BIN || null, // Caminho configurado pelo buildpack
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
-        ]
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
     }
 });
 
@@ -560,19 +550,16 @@ cleanDebugLog();
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
-    if (qrGenerated) return; // Impede a geração duplicada do QR Code
-    qrGenerated = true; // Marca como gerado
+    if (qrGenerated) return;
+    qrGenerated = true;
+    console.log('QR Code recebido:', qr);
 
-    console.log('QR Code recebido.');
-    console.log(qr); // Exibe o texto do QR Code no terminal para uso manual
-
-    // Gera e salva a imagem do QR Code
+    // Salva o QR Code como imagem
     try {
-        qrImagePath = path.join(__dirname, 'qrcode.png');
-        await qrcode.toFile(qrImagePath, qr); // Gera a imagem do QR Code
-        console.log('QR Code gerado. Escaneie para conectar.');
+        await qrcode.toFile(qrImagePath, qr);
+        console.log('QR Code salvo com sucesso.');
     } catch (err) {
-        console.error('Erro ao gerar o QR Code:', err);
+        console.error('Erro ao salvar o QR Code:', err);
     }
 });
 
