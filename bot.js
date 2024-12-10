@@ -728,6 +728,7 @@ process.on('SIGTERM', () => {
         });
 });
 
+console.warn = () => {}; // Ignora todos os warnings
 
 // Inicia o servidor Express
 app.listen(PORT, () => {
