@@ -550,14 +550,20 @@ cleanDebugLog();
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
-    if (!qrCodeActive) { // Gera o QR apenas se ele ainda não foi processado
-        console.log(`QR Code recebido: ${qr}`);
-        qrCodeActive = true; // Define como ativo para evitar múltiplas execuções
-        await generateQRCode(qr); // Salva a imagem
-    } else {
+    if (qrCodeActive) {
         console.log('QR Code já ativo, ignorando...');
+        return;
+    }
+
+    try {
+        console.log('QR Code recebido.');
+        await generateQRCode(qr);
+        qrCodeActive = true; // Marca como ativo
+    } catch (error) {
+        console.error('Erro ao processar QR Code:', error);
     }
 });
+
 
 
 client.on('ready', () => {
