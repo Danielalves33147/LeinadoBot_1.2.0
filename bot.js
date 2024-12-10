@@ -1,31 +1,24 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-
 const { Poll } = require('whatsapp-web.js');
-
 const qrcode = require('qrcode');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-
 const axios = require('axios');
 // Configuração da API
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText';
-
 const API_KEY = 'AIzaSyAoY9W80AieB4hNX5ri-aZ-FCTtt6gp8Gs';
-
 // Configurações do servidor e variáveis
 const app = express();
 const PORT = process.env.PORT || 3000;
 let qrGenerated = false;
 let qrImagePath = ''; // Caminho do QR Code gerado
 const rolesFilePath = path.join(__dirname, 'userRoles.json');
-const DONO = '557191165170@c.us'; // Número do Dono
-
-let perdiCounter = 0;
-
-
+let qrCodeActive = false;
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
+let perdiCounter = 5;
 
+const DONO = '557191165170@c.us'; // Número do Dono
 
 // Tabela de pessoas específicas (IDs de usuários)
 const specificUsers = [
@@ -61,13 +54,13 @@ const saveRoles = () => {
 const getUserRole = (userId) => {
     const normalizedId = userId.endsWith('@c.us') ? userId : `${userId}@c.us`;
 
-    console.log(`Verificando cargo de: ${normalizedId}`);
-    console.log(`Cargos atuais:`, userRoles);
+    //console.log(`Verificando cargo de: ${normalizedId}`);
+    //console.log(`Cargos atuais:`, userRoles);
 
     if (normalizedId === DONO) return roles.dono;
 
     const role = userRoles[normalizedId] || roles.recruta;
-    console.log(`Cargo retornado para ${normalizedId}: ${role}`);
+    //console.log(`Cargo retornado para ${normalizedId}: ${role}`);
     return role;
 };
 
@@ -153,16 +146,8 @@ const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
         return;
     }
 
-    console.log(`Acesso concedido: ${userId} com cargo ${senderRole}`);
+    //console.log(`Acesso concedido: ${userId} com cargo ${senderRole}`);
     callback(); // Executa o comando se autorizado
-};
-
-// Gera e salva o QR Code em um arquivo
-const handleQrCode = async (qr) => {
-    qrImagePath = path.join(__dirname, 'qrcode.png');
-    await qrcode.toFile(qrImagePath, qr);
-    qrGenerated = true;
-    console.log('QR Code gerado. Acesse /qrcode para visualizá-lo no navegador.');
 };
 
 // Funções de Comando
@@ -214,9 +199,9 @@ const handlePerdiCommand = async (message) => {
             mentions
         });
 
-        console.log(`Mensagem enviada com ${mentions.length} menções.`);
+        //console.log(`Mensagem enviada com ${mentions.length} menções.`);
     } catch (error) {
-        console.error('Erro ao executar o comando !perdi:', error.message);
+        //console.error('Erro ao executar o comando !perdi:', error.message);
         await message.reply('❌ Não foi possível executar o comando no momento.');
     }
 };
@@ -276,7 +261,7 @@ const handleAllCommand = async (message) => {
             return;
         }
 
-        console.log(`Comando "!all" detectado no grupo: ${chat.name}`);
+        //console.log(`Comando "!all" detectado no grupo: ${chat.name}`);
 
         // Obtém os participantes do grupo
         const participants = chat.participants;
@@ -293,7 +278,7 @@ const handleAllCommand = async (message) => {
         // Envia a mensagem com as menções ocultas
         await chat.sendMessage('📍​Chamando todo mundo📍​', { mentions });
 
-        console.log(`Mensagem com menções invisíveis enviada para o grupo: ${chat.name}`);
+        //console.log(`Mensagem com menções invisíveis enviada para o grupo: ${chat.name}`);
     } catch (error) {
         console.error('Erro ao executar o comando !all:', error);
         message.reply('Algo deu errado, tente novamente!');
@@ -318,7 +303,7 @@ const handleAddCargoCommand = (message, args) => {
     saveRoles(); // Salva no arquivo JSON
 
     message.reply(`Cargo "${roles[roleKey]}" atribuído ao usuário ${userId}.`);
-    console.log(`Cargo "${roles[roleKey]}" atribuído a ${userId}`);
+    //console.log(`Cargo "${roles[roleKey]}" atribuído a ${userId}`);
 };
 
 const handleRemoveCargoCommand = (message, args) => {
@@ -353,7 +338,7 @@ const handleListarCargosCommand = async (message) => {
                 const contactName = contact.pushname || contact.name || contact.number; // Nome, pushname ou número
                 return `- ${contactName}: ${role}`;
             } catch (error) {
-                console.error(`Erro ao buscar o contato ${userId}:`, error);
+                //console.error(`Erro ao buscar o contato ${userId}:`, error);
                 return `- ${userId}: ${role}`; // Retorna o número caso não encontre o contato
             }
         })
@@ -395,7 +380,7 @@ const handleSorteioCommand = async (message, chat) => {
 
         // Envia a mensagem com o nome do sorteado
         message.reply(`🎉 O sorteado foi: ${contactName}`);
-        console.log(`Sorteio realizado no grupo: ${chat.name || 'Sem Nome'}, Sorteado: ${contactName}`);
+        //console.log(`Sorteio realizado no grupo: ${chat.name || 'Sem Nome'}, Sorteado: ${contactName}`);
     } catch (error) {
         console.error('Erro ao realizar o sorteio no grupo:', error);
         message.reply('Houve um erro ao realizar o sorteio.');
@@ -410,7 +395,7 @@ const handleStickerCommand = async (message) => {
     }
 
     await message.reply(media, undefined, { sendMediaAsSticker: true });
-    console.log('Sticker gerado com sucesso.');
+    //console.log('Sticker gerado com sucesso.');
 };
 
 const handleListParticipantsCommand = async (message, chat) => {
@@ -420,7 +405,7 @@ const handleListParticipantsCommand = async (message, chat) => {
             return;
         }
 
-        console.log(`Comando "!todos" detectado no grupo: ${chat.name}`);
+        //console.log(`Comando "!todos" detectado no grupo: ${chat.name}`);
 
         // Obtém os participantes do grupo
         const participants = chat.participants;
@@ -438,7 +423,7 @@ const handleListParticipantsCommand = async (message, chat) => {
 
         // Envia a mensagem com as menções
         await chat.sendMessage(mentionText, { mentions });
-        console.log(`Lista de participantes enviada para o grupo: ${chat.name}`);
+        //console.log(`Lista de participantes enviada para o grupo: ${chat.name}`);
     } catch (error) {
         console.error('Erro ao listar participantes no grupo:', error);
         message.reply('Houve um erro ao tentar listar os participantes do grupo.');
@@ -494,7 +479,7 @@ const handleBanCommand = async (message, args, senderRole) => {
             mentions: [contact],
         });
 
-        console.log(`Usuário ${userId} (${mentionText}) removido do grupo.`);
+        //console.log(`Usuário ${userId} (${mentionText}) removido do grupo.`);
     } catch (error) {
         console.error('Erro ao executar o comando !ban:', error);
         message.reply('❌ Não foi possível remover o usuário. Verifique as permissões e tente novamente.');
@@ -538,7 +523,7 @@ const handleNativePollCommand = async (message) => {
         // Abre a janela de chat para garantir que a enquete seja visível
         await client.interface.openChatWindow(chat.id._serialized);
 
-        console.log('Enquete enviada com sucesso:', { question, options });
+        //console.log('Enquete enviada com sucesso:', { question, options });
     } catch (error) {
         console.error('Erro ao enviar a enquete:', error.message);
         message.reply('❌ Houve um erro ao criar a enquete. Certifique-se de que a API suporta esse recurso.');
@@ -551,31 +536,37 @@ const cleanDebugLog = () => {
     try {
         if (fs.existsSync(debugLogPath)) {
             fs.unlinkSync(debugLogPath);
-            console.log('Arquivo chrome_debug.log removido para evitar conflitos.');
+            //console.log('Arquivo chrome_debug.log removido para evitar conflitos.');
         }
     } catch (err) {
         console.error('Erro ao limpar chrome_debug.log:', err);
     }
 };
 
+// Função para gerar e exibir o QR Code
+const generateQRCode = async (qr) => {
+    try {
+        qrImagePath = path.join(__dirname, 'qrcode.png');
+        await qrcode.toFile(qrImagePath, qr); // Gera a imagem do QR Code
+        qrCodeActive = true;
+        console.log('QR Code gerado. Escaneie para conectar.');
+    } catch (err) {
+        console.error('Erro ao gerar o QR Code:', err);
+    }
+};
+
 // Antes de iniciar o cliente:
 cleanDebugLog();
 
+// Eventos do cliente
 client.on('qr', async (qr) => {
-    console.log('QR Code gerado. Copie o texto abaixo e cole em um gerador de QR Code:');
-    console.log(qr);
-
-    try {
-        qrImagePath = path.join(__dirname, 'qrcode.png');
-        await qrcode.toFile(qrImagePath, qr); // Gera o arquivo de imagem
-        qrGenerated = true;
-    } catch (error) {
-        console.error('Erro ao gerar o QR Code:', error);
-    }
+    console.log('QR Code recebido.');
+    await generateQRCode(qr);
 });
 
 client.on('ready', () => {
-    console.log('Bot conectado e pronto para uso!');
+    console.log('Bot conectado e pronto para uso.');
+    qrCodeActive = false; // Desativa o QR Code após conexão bem-sucedida
 });
 
 client.on('message', async (message) => {
@@ -593,10 +584,11 @@ client.on('message', async (message) => {
         const senderRole = getUserRole(userId);
 
         // Logs para depuração
-        console.log(`Comando recebido de: ${userId}, Cargo: ${senderRole}`);
+        console.log(`Usuario: ${userId}`);
+        console.log(`Cargo: ${senderRole}`);
         console.log(`Comando: ${message.body}`);
-        console.log(`É grupo: ${isGroup}`);
-        console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
+        console.log(`Grupo: ${isGroup}`);
+       // console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
         // Processar comandos
         const [command, ...args] = message.body.split(' ');
 
@@ -707,29 +699,27 @@ client.on('message', async (message) => {
 // Inicializa o cliente do WhatsApp
 client.initialize();
 
-// Rota para exibir o QR Code
+// Rota para exibir o QR Code no navegador
 app.get('/qrcode', (req, res) => {
-    if (qrGenerated && fs.existsSync(qrImagePath)) {
+    if (qrCodeActive && fs.existsSync(qrImagePath)) {
         res.sendFile(qrImagePath); // Envia a imagem do QR Code para o navegador
     } else {
-        res.send('<h1>QR Code ainda não gerado. Aguarde...</h1>'); // Mensagem amigável
+        res.send('<h1>Bot já conectado ou QR Code expirado. Aguarde...</h1>');
     }
 });
 
-// Evento para detectar erros críticos e reiniciar o cliente
-client.on('disconnected', (reason) => {
-    console.error(`Cliente desconectado: ${reason}. Tentando reiniciar...`);
+client.on('disconnected', async (reason) => {
+    console.error(`Cliente desconectado: ${reason}. Tentando reconectar...`);
     try {
-        client.destroy().then(() => {
-            cleanDebugLog(); // Certifica-se de limpar o log antes de reiniciar
-            client.initialize();
-        });
+        // Mantém o cliente ativo e tenta reconectar automaticamente
+        qrCodeActive = true;
+        client.initialize();
     } catch (err) {
-        console.error('Erro ao reiniciar o cliente:', err);
+        console.error('Erro ao tentar reconectar:', err);
     }
 });
 
 // Inicia o servidor Express
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}.`);
+    //console.log(`Servidor Online`);
 });
