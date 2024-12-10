@@ -12,11 +12,11 @@ const API_KEY = 'AIzaSyAoY9W80AieB4hNX5ri-aZ-FCTtt6gp8Gs';
 const app = express();
 const PORT = process.env.PORT || 3000;
 let qrGenerated = false;
-let qrImagePath = ''; // Caminho do QR Code gerado
 const rolesFilePath = path.join(__dirname, 'userRoles.json');
 let qrCodeActive = false;
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
 let perdiCounter = 5;
+const qrImagePath = path.join(__dirname, 'qrcode.png'); // Caminho absoluto
 
 const DONO = '557191165170@c.us'; // Número do Dono
 
