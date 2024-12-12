@@ -547,7 +547,23 @@ const generateQRCode = async (qr) => {
 };
 
 // Antes de iniciar o cliente:
-cleanDebugLog();
+cleanDebugLog()
+
+
+//Verifica o bot de tempo em tempo
+setInterval(async () => {
+    if (!client.info || !client.info.pushname) {
+        console.log('Cliente desconectado. Tentando reconectar...');
+        try {
+            client.destroy();
+            client.initialize();
+        } catch (error) {
+            console.error('Erro ao tentar reconectar:', error);
+        }
+    } else {
+        console.log('Cliente está ativo.');
+    }
+}, 3600000); // Verifica a cada 1 hora (3600000 ms)
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
@@ -559,7 +575,7 @@ client.on('qr', async (qr) => {
         console.log('QR Code já ativo, ignorando...');
     }
 });
-
+ 
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso.');
@@ -708,13 +724,16 @@ app.get('/qrcode', (req, res) => {
 client.on('disconnected', async (reason) => {
     console.error(`Cliente desconectado: ${reason}. Tentando reconectar...`);
     try {
-        // Mantém o cliente ativo e tenta reconectar automaticamente
-        qrCodeActive = true;
-        client.initialize();
+        // Reinicializa o cliente para reconexão
+        client.destroy();
+        setTimeout(() => {
+            client.initialize();
+        }, 5000); // Aguarda 5 segundos antes de tentar reconectar
     } catch (err) {
         console.error('Erro ao tentar reconectar:', err);
     }
 });
+
 
 process.on('SIGTERM', () => {
     console.log('Recebido SIGTERM. Finalizando o processo...');
@@ -734,3 +753,4 @@ process.on('SIGTERM', () => {
 app.listen(PORT, () => {
     //console.log(`Servidor Online`);
 });
+
