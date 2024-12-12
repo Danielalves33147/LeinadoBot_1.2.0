@@ -522,21 +522,34 @@ setInterval(async () => {
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
-    if (!qrCodeActive) { // Gera o QR apenas se ele ainda não foi processado
-        console.log(`QR Code recebido: ${qr}`);
-        qrCodeActive = true; // Define como ativo para evitar múltiplas execuções
-        await generateQRCode(qr); // Salva a imagem
-    } else {
-        console.log('QR Code já ativo, ignorando...');
+    console.log(`QR Code recebido: ${qr}`);
+    
+    // Sempre atualiza o QR Code ao receber um novo
+    qrCodeActive = true;
+    try {
+        await qrcode.toFile('./qrcode.png', qr); // Gera a imagem do QR Code
+        console.log('QR Code gerado. Escaneie para conectar.');
+    } catch (err) {
+        console.error('Erro ao salvar o QR Code:', err);
     }
 });
- 
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso.');
-    qrCodeActive = false; // Desativa o QR Code após conexão bem-sucedida
+    qrCodeActive = false; // Desativa o QR Code quando o cliente está pronto
 });
 
+client.on('disconnected', async (reason) => {
+    console.log(`Cliente desconectado: ${reason}. Tentando reconectar...`);
+    qrCodeActive = false; // Força a regeneração do QR Code na próxima inicialização
+    try {
+        await client.destroy(); // Garante que a sessão antiga seja encerrada
+        client.initialize();    // Reinicia o cliente para gerar um novo QR Code
+    } catch (err) {
+        console.error('Erro ao tentar reconectar:', err);
+    }
+});
+ 
 client.on('message', async (message) => {
     try {
         if (!message.body.startsWith('!')) return;
@@ -669,23 +682,10 @@ client.initialize();
 
 // Rota para exibir o QR Code no navegador
 app.get('/qrcode', (req, res) => {
-    if (qrCodeActive && fs.existsSync(qrImagePath)) {
-        res.sendFile(qrImagePath); // Envia a imagem do QR Code para o navegador
+    if (qrCodeActive && fs.existsSync('./qrcode.png')) {
+        res.sendFile(path.join(__dirname, 'qrcode.png'));
     } else {
-        res.send('<h1>Bot já conectado ou QR Code expirado. Aguarde...</h1>');
-    }
-});
-
-client.on('disconnected', async (reason) => {
-    console.error(`Cliente desconectado: ${reason}. Tentando reconectar...`);
-    try {
-        // Reinicializa o cliente para reconexão
-        client.destroy();
-        setTimeout(() => {
-            client.initialize();
-        }, 5000); // Aguarda 5 segundos antes de tentar reconectar
-    } catch (err) {
-        console.error('Erro ao tentar reconectar:', err);
+        res.send('<h1>QR Code expirado ou bot já conectado. Aguarde...</h1>');
     }
 });
 
