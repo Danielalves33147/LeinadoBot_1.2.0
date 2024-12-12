@@ -5,13 +5,9 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-// Configuração da API
-const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText';
-const API_KEY = 'AIzaSyAoY9W80AieB4hNX5ri-aZ-FCTtt6gp8Gs';
 // Configurações do servidor e variáveis
 const app = express();
 const PORT = process.env.PORT || 3000;
-let qrGenerated = false;
 const rolesFilePath = path.join(__dirname, 'userRoles.json');
 let qrCodeActive = false;
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
@@ -81,31 +77,6 @@ const isRoleAuthorized = (userRole, allowedRoles) => {
     });
 };
 
-const fetchGeminiResponse = async (prompt) => {
-    try {
-        // Corpo da solicitação para a API Gemini
-        const body = {
-            prompt: { text: prompt },
-            temperature: 0.7, // Grau de criatividade
-            maxOutputTokens: 100, // Tamanho máximo da resposta
-        };
-
-        // Envia a solicitação
-        const response = await axios.post(`${BASE_URL}?key=${API_KEY}`, body, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-
-        // Retorna o texto gerado
-        return response.data.candidates[0]?.output || 'Sem resposta disponível.';
-    } catch (error) {
-        console.error('Erro ao consultar a API Gemini:', error.response?.data || error.message);
-        throw new Error('Não foi possível obter uma resposta da API Gemini.');
-    }
-};
-
-
 // Carregar as informações dos cargos e adicionar o Dono explicitamente
 const userRoles = loadRoles();
 if (!userRoles[DONO]) {
@@ -117,7 +88,16 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process',
+            '--disable-dev-tools'
+        ]
     }
 });
 
@@ -140,34 +120,9 @@ const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
     //console.log(`Acesso concedido: ${userId} com cargo ${senderRole}`);
     callback(); // Executa o comando se autorizado
 };
-
 // Funções de Comando
 const handlePingCommand = (message) => {
     message.reply('🏓 Pong! Estou funcionando corretamente.');
-};
-
-// Função para lidar com o comando !gpt
-const handleGeminiCommand = async (message, chat) => {
-    try {
-        // Remove o prefixo do comando para usar como entrada para o Gemini
-        const inputText = message.body.replace('!dsa', '').trim();
-
-        // Caso não tenha texto após o comando
-        if (!inputText) {
-            message.reply('Por favor, insira uma mensagem para que eu possa responder.');
-            return;
-        }
-
-        // Obtém a resposta da API Gemini
-        const geminiResponse = await fetchGeminiResponse(inputText);
-
-        // Envia a resposta para o chat
-        message.reply(`🤖 Resposta da IA:\n${geminiResponse}`);
-    } catch (error) {
-        // Caso ocorra um erro
-        message.reply('Houve um erro ao processar sua solicitação.');
-        console.error('Erro no handleGeminiCommand:', error.message);
-    }
 };
 
 // Variável global para contar o número de vezes que o comando foi acionado
