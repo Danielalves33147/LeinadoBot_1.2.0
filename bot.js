@@ -506,7 +506,11 @@ cleanDebugLog()
 
 
 //Verifica o bot de tempo em tempo
-setInterval(async () => {
+setInterval(async () => {    
+    
+    const memoryUsage = process.memoryUsage();
+    console.log(`Uso de memória (MB): RSS: ${(memoryUsage.rss / 1024 / 1024).toFixed(2)}, Heap: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}`);
+
     if (!client.info || !client.info.pushname) {
         console.log('Cliente desconectado. Tentando reconectar...');
         try {
