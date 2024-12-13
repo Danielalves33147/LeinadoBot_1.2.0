@@ -530,6 +530,7 @@ client.on('qr', async (qr) => {
     qrCodeActive = true;
     try {
         await qrcode.toFile('./qrcode.png', qr); // Salva o QR Code como imagem
+        console.log(qr);
     } catch (err) {
         console.error('Erro ao gerar o QR Code:', err);
     }
