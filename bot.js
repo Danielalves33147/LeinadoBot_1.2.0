@@ -540,17 +540,6 @@ client.on('ready', () => {
     console.log('Bot conectado e pronto para uso.');
     qrCodeActive = false; // Desativa o QR Code quando o cliente está pronto
 });
-
-client.on('disconnected', async (reason) => {
-    console.log(`Cliente desconectado: ${reason}. Tentando reconectar...`);
-    qrCodeActive = false; // Força a regeneração do QR Code na próxima inicialização
-    try {
-        await client.destroy(); // Garante que a sessão antiga seja encerrada
-        client.initialize();    // Reinicia o cliente para gerar um novo QR Code
-    } catch (err) {
-        console.error('Erro ao tentar reconectar:', err);
-    }
-});
  
 client.on('disconnected', async (reason) => {
     console.error(`Cliente desconectado: ${reason}`);
@@ -563,6 +552,132 @@ client.on('disconnected', async (reason) => {
     }
 });
 
+client.on('message', async (message) => {
+    try {
+        if (!message.body.startsWith('!')) return;
+
+        // Inicializa o chat
+        const chat = await message.getChat();
+        const isGroup = chat.isGroup;
+
+        // Obtenha o ID do autor corretamente
+        const userId = isGroup ? message.author : message.from;
+
+        // Obtenha o cargo do autor
+        const senderRole = getUserRole(userId);
+
+        // Logs para depuração
+        console.log(`Usuario: ${userId}`);
+        console.log(`Cargo: ${senderRole}`);
+        console.log(`Comando: ${message.body}`);
+        console.log(`Grupo: ${isGroup}`);
+       // console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
+        // Processar comandos
+        const [command, ...args] = message.body.split(' ');
+
+        switch (command) {
+            case '!ban':
+                // Apenas Yonkō e Dono podem usar
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleBanCommand(message, args, senderRole);
+                });
+                break;
+        
+            case '!todos':
+                // Apenas Yonkō e acima podem listar participantes
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleListParticipantsCommand(message, chat);
+                });
+                break;
+        
+            case '!addcargo':
+                // Apenas Yonkō e Dono podem usar
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleAddCargoCommand(message, args);
+                });
+                break;
+        
+            case '!removecargo':
+                // Apenas Yonkō e Dono podem usar
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleRemoveCargoCommand(message, args);
+                });
+                break;
+        
+            case '!listarcargos':
+                // Apenas Yonkō e Dono podem listar cargos
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                    handleListarCargosCommand(message);
+                });
+                break;
+        
+            case '!sorteio':
+                // Apenas Almirante e acima podem usar
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                    handleSorteioCommand(message, chat);
+                });
+                break;
+        
+            case '!sticker':
+                // Apenas Almirante e acima podem usar
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                    handleStickerCommand(message);
+                });
+                break;
+        
+            case '!all':
+                // Apenas Comandante e acima podem marcar todos
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handleAllCommand(message);
+                });
+                break;
+        
+            case '!dado':
+                // Apenas Comandante e acima podem rolar dados
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handleDadoCommand(message, args);
+                });
+                break;
+        
+            case '!perdi':
+                // Apenas Comandante e acima podem usar
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    handlePerdiCommand(message);
+                });
+                break;
+        
+            case '!ranks':
+                // Apenas Comandante e acima podem consultar hierarquia
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                    const ranks = handleRanksCommand();
+                    message.reply(`📜 Cargos Disponíveis 📜\n\n${ranks}`);
+                });
+                break;
+        
+            case '!help':
+                // Todos podem acessar o !help
+                handleHelpCommand(message, senderRole);
+                break;
+        
+            case '!ping':
+                // Todos podem usar o !ping
+                handlePingCommand(message);
+                break;
+
+            case '!enquete':
+                handleNativePollCommand(message);
+                break;
+
+        
+            default:
+                // Comando não reconhecido
+                message.reply('Comando não reconhecido. Use !help para ver a lista de comandos disponíveis.');
+                break;
+        }        
+    } catch (error) {
+        console.error('Erro ao processar a mensagem:', error);
+    }
+});
 
 // Inicializa o cliente do WhatsApp
 client.initialize();
