@@ -166,10 +166,9 @@ const handleHelpCommand = (message, senderRole) => {
         ],
         Almirante: [
             '*!sorteio* - Fazer um sorteio',
-            '*!sticker* - Cria uma figurinha',
+            '*!todos* - Listar participantes',
         ],
         Comandante: [
-            '*!dado* <número_de_lados>',
             '*!all* - Marcar todos os membros',
             '*!ranks* - Mostrar hierarquia',
             '*!perdi* - Contar "perdi" no grupo',
@@ -177,6 +176,8 @@ const handleHelpCommand = (message, senderRole) => {
         Recruta: [
             '*!help* - Listar comandos',
             '*!ping* - Status do bot',
+            '*!sticker* - Cria uma figurinha',
+            '*!dado* <número_de_lados>'
         ],
     };
 
@@ -226,6 +227,7 @@ const handleAllCommand = async (message) => {
 
         // Envia a mensagem com as menções ocultas
         await chat.sendMessage('📍​Chamando todo mundo📍​', { mentions });
+        console.log("TODOS AQUI : ",participants)
 
         //console.log(`Mensagem com menções invisíveis enviada para o grupo: ${chat.name}`);
     } catch (error) {
@@ -585,7 +587,7 @@ client.on('message', async (message) => {
         
             case '!todos':
                 // Apenas Yonkō e acima podem listar participantes
-                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Yonkō', 'Dono','Almirante'], () => {
                     handleListParticipantsCommand(message, chat);
                 });
                 break;
@@ -620,7 +622,7 @@ client.on('message', async (message) => {
         
             case '!sticker':
                 // Apenas Almirante e acima podem usar
-                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono','Recruta'], () => {
                     handleStickerCommand(message);
                 });
                 break;
@@ -634,7 +636,7 @@ client.on('message', async (message) => {
         
             case '!dado':
                 // Apenas Comandante e acima podem rolar dados
-                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono', 'Recruta'], () => {
                     handleDadoCommand(message, args);
                 });
                 break;
