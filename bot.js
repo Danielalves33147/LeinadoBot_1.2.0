@@ -511,17 +511,19 @@ cleanDebugLog()
 
 
 setInterval(async () => {
-    console.log('Verificando conexão do cliente...');
+    const currentDateTime = new Date().toLocaleString(); // Obtém a data e hora atual
+    console.log(`[${currentDateTime}] Verificando conexão do cliente...`);
+
     if (!client.info || !client.info.pushname) {
-        console.log('Cliente desconectado. Tentando reconectar...');
+        console.log(`[${currentDateTime}] Cliente desconectado. Tentando reconectar...`);
         try {
             await client.destroy(); // Encerra a sessão
             client.initialize();    // Reinicia o cliente
         } catch (error) {
-            console.error('Erro ao tentar reconectar:', error);
+            console.error(`[${currentDateTime}] Erro ao tentar reconectar:`, error);
         }
     } else {
-        console.log('Cliente está ativo.');
+        console.log(`[${currentDateTime}] Cliente está ativo.`);
     }
 }, 3600000); // A cada 1 hora
 
