@@ -16,7 +16,7 @@ let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para 
  // Caminho absoluto
 
 const DONO = '557191165170@c.us'; // Número do Dono
-
+const GROUP_ID = '120363372145683104@g.us'; //Mensagens para testar durabilidade
 // Tabela de pessoas específicas (IDs de usuários)
 const specificUsers = [
     '557191165170@c.us', // Daniel
@@ -124,9 +124,19 @@ const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
     callback(); // Executa o comando se autorizado
 };
 // Funções de Comando
-const handlePingCommand = (message) => {
+const handlePingCommand = async (message, client) => {
+    // Responde ao remetente original
     message.reply('🏓 Pong! Estou funcionando corretamente.');
+
+    // Envia uma mensagem no grupo de testes
+    try {
+       // await client.sendMessage(GROUP_ID, '🏓 Pong! O comando "ping" foi acionado.');
+       // console.log(`Mensagem enviada ao grupo de testes com ID: ${GROUP_ID}`);
+    } catch (error) {
+       // console.error('Erro ao enviar mensagem no grupo de testes:', error);
+    }
 };
+
 
 // Variável global para contar o número de vezes que o comando foi acionado
 const handlePerdiCommand = async (message) => {
@@ -176,7 +186,7 @@ const handleHelpCommand = (message, senderRole) => {
         Recruta: [
             '*!help* - Listar comandos',
             '*!ping* - Status do bot',
-            '*!sticker* - Cria uma figurinha',
+            '*!s* - Cria uma figurinha',
             '*!dado* <número_de_lados>'
         ],
     };
@@ -227,7 +237,7 @@ const handleAllCommand = async (message) => {
 
         // Envia a mensagem com as menções ocultas
         await chat.sendMessage('📍​Chamando todo mundo📍​', { mentions });
-        console.log("TODOS AQUI : ",participants)
+        //console.log("TODOS AQUI : ",participants)
 
         //console.log(`Mensagem com menções invisíveis enviada para o grupo: ${chat.name}`);
     } catch (error) {
@@ -510,8 +520,9 @@ const generateQRCode = async (qr) => {
 cleanDebugLog()
 
 
+// Função principal para monitorar a conexão e enviar mensagens
 setInterval(async () => {
-    const currentDateTime = new Date().toLocaleString(); // Obtém a data e hora atual
+    const currentDateTime = new Date().toLocaleString(); // Data e hora atual
     console.log(`[${currentDateTime}] Verificando conexão do cliente...`);
 
     if (!client.info || !client.info.pushname) {
@@ -519,13 +530,19 @@ setInterval(async () => {
         try {
             await client.destroy(); // Encerra a sessão
             client.initialize();    // Reinicia o cliente
+
+            // Envia mensagem no grupo informando a desconexão e tentativa de reconexão
+            await client.sendMessage(GROUP_ID, `⚠️ O bot foi desconectado e está tentando reconectar... [${currentDateTime}]`);
         } catch (error) {
             console.error(`[${currentDateTime}] Erro ao tentar reconectar:`, error);
         }
     } else {
         console.log(`[${currentDateTime}] Cliente está ativo.`);
+
+        // Envia mensagem no grupo confirmando que o bot está online
+        await client.sendMessage(GROUP_ID, `✅ O bot está ativo e funcionando normalmente. [${currentDateTime}]`);
     }
-}, 3600000); // A cada 1 hora
+}, 14400000); // A cada 4 horas
 
 
 // Eventos do cliente
@@ -567,6 +584,12 @@ client.on('message', async (message) => {
         // Obtenha o ID do autor corretamente
         const userId = isGroup ? message.author : message.from;
 
+        if (isGroup) {
+            // Obtém o nome do grupo
+            const chat = await message.getChat();
+            groupName = chat.name; // O nome do grupo
+        }
+
         // Obtenha o cargo do autor
         const senderRole = getUserRole(userId);
 
@@ -574,8 +597,10 @@ client.on('message', async (message) => {
         console.log(`Usuario: ${userId}`);
         console.log(`Cargo: ${senderRole}`);
         console.log(`Comando: ${message.body}`);
-        console.log(`Grupo: ${isGroup}`);
-       // console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
+        console.log(`Grupo: ${groupName}`);
+        //console.log(`Usuário: ${userId}, Cargo: ${senderRole}`);
+
+
         // Processar comandos
         const [command, ...args] = message.body.split(' ');
 
@@ -622,7 +647,7 @@ client.on('message', async (message) => {
                 });
                 break;
         
-            case '!sticker':
+            case '!s':
                 // Apenas Almirante e acima podem usar
                 executeCommandWithRoleCheck(message, ['Almirante', 'Yonkō', 'Dono','Recruta'], () => {
                     handleStickerCommand(message);
@@ -665,7 +690,7 @@ client.on('message', async (message) => {
         
             case '!ping':
                 // Todos podem usar o !ping
-                handlePingCommand(message);
+                handlePingCommand(message, client);
                 break;
 
             case '!enquete':
