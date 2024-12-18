@@ -591,14 +591,16 @@ client.on('message', async (message) => {
             groupName = chat.name; // O nome do grupo
         }
 
-                // Evite processar mensagens citadas se não forem necessárias
+        // Evitar erro ao processar mensagens citadas
+        let quotedMessage;
         if (message.hasQuotedMsg) {
-            const quotedMessage = await message.getQuotedMessage();
-            if (!quotedMessage) {
-                console.log('Mensagem citada não encontrada. Ignorando.');
+            try {
+                quotedMessage = await message.getQuotedMessage();
+            } catch (error) {
+                console.warn('Falha ao obter a mensagem citada:', error.message);
             }
         }
-        
+
         // Obtenha o cargo do autor
         const senderRole = getUserRole(userId);
 
