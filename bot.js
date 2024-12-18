@@ -518,6 +518,26 @@ const generateQRCode = async (qr) => {
     }
 };
 
+const restoreSession = () => {
+    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session-bot-session');
+    const backupPath = path.join(__dirname, 'session-backup.tar.gz');
+
+    if (fs.existsSync(backupPath)) {
+        try {
+            const { execSync } = require('child_process');
+            execSync(`tar -xzf ${backupPath} -C ${sessionPath}`);
+            console.log('Sessão restaurada com sucesso.');
+        } catch (error) {
+            console.error('Erro ao restaurar a sessão:', error.message);
+        }
+    } else {
+        console.log('Nenhum backup de sessão encontrado.');
+    }
+};
+
+restoreSession();
+
+
 // Antes de iniciar o cliente:
 cleanDebugLog()
 
@@ -559,9 +579,20 @@ client.on('qr', async (qr) => {
 });
 
 client.on('ready', () => {
-    console.log('Bot conectado e pronto para uso.');
-    qrCodeActive = false; // Desativa o QR Code quando o cliente está pronto
+    console.log('Bot conectado com sucesso.');
+
+    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session-bot-session');
+    const backupPath = path.join(__dirname, 'session-backup.tar.gz');
+
+    try {
+        const { execSync } = require('child_process');
+        execSync(`tar -czf ${backupPath} -C ${sessionPath} .`);
+        console.log('Sessão salva em session-backup.tar.gz');
+    } catch (error) {
+        console.error('Erro ao salvar a sessão:', error.message);
+    }
 });
+
  
 client.on('disconnected', async (reason) => {
     console.error(`Cliente desconectado: ${reason}`);
