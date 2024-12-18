@@ -1,0 +1,4 @@
+2024/12/17-14:32:36.218 84c Reusing MANIFEST C:\Users\Pichau\OneDrive\Ambiente de Trabalho\bot2\.wwebjs_auth\session-bot-session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2024/12/17-14:32:36.219 84c Recovering log #59
+2024/12/17-14:32:36.282 84c Reusing old log C:\Users\Pichau\OneDrive\Ambiente de Trabalho\bot2\.wwebjs_auth\session-bot-session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000059.log 
+2024/12/17-14:32:37.717 84c Manual compaction at level-0 from '\x00 \x00\x00\x00' @ 72057594037927935 : 1 .. '\x00!\x00\x00\x00' @ 0 : 0; will stop at (end)
