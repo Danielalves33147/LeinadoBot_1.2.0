@@ -86,7 +86,8 @@ if (!userRoles[DONO]) {
 
 const client = new Client({
     authStrategy: new LocalAuth({
-        clientId: "bot-session" // Identificador único para salvar a sessão
+        clientId: "bot-session",
+        dataPath: path.join(__dirname, '.wwebjs_auth') // Certifique-se de que este diretório seja persistente
     }),
     puppeteer: {
         headless: true,
@@ -102,6 +103,7 @@ const client = new Client({
         ]
     }
 });
+
 
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
@@ -518,7 +520,6 @@ const generateQRCode = async (qr) => {
 
 // Antes de iniciar o cliente:
 cleanDebugLog()
-
 
 // Função principal para monitorar a conexão e enviar mensagens
 setInterval(async () => {
