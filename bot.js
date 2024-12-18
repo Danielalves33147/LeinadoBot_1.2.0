@@ -586,7 +586,7 @@ client.on('ready', () => {
 
     try {
         const { execSync } = require('child_process');
-        execSync(`tar --warning=no-file-changed -czf ${backupPath} -C ${sessionPath} .`);
+        execSync(`tar --exclude='./Default/Cache/*' --exclude='./Default/IndexedDB/*' -czf ${backupPath} -C ${sessionPath} .`);
         console.log('Sessão salva em session-backup.tar.gz');
     } catch (error) {
         console.error('Erro ao salvar a sessão:', error.message);
