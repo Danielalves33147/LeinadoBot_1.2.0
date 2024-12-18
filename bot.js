@@ -15,6 +15,15 @@ let perdiCounter = 5;
 let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para let
  // Caminho absoluto
 
+ // Caminho do diretório de autenticação
+const authPath = path.join(__dirname, '.wwebjs_auth');
+
+// Recriar o diretório caso ele não exista
+if (!fs.existsSync(authPath)) {
+    fs.mkdirSync(authPath, { recursive: true });
+    console.log('Diretório .wwebjs_auth recriado.');
+}
+
 const DONO = '557191165170@c.us'; // Número do Dono
 const GROUP_ID = '120363372145683104@g.us'; //Mensagens para testar durabilidade
 // Tabela de pessoas específicas (IDs de usuários)
