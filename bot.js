@@ -15,15 +15,6 @@ let perdiCounter = 5;
 let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para let
  // Caminho absoluto
 
- // Caminho do diretório de autenticação
-const authPath = path.join(__dirname, '.wwebjs_auth');
-
-// Recriar o diretório caso ele não exista
-if (!fs.existsSync(authPath)) {
-    fs.mkdirSync(authPath, { recursive: true });
-    console.log('Diretório .wwebjs_auth recriado.');
-}
-
 const DONO = '557191165170@c.us'; // Número do Dono
 const GROUP_ID = '120363372145683104@g.us'; //Mensagens para testar durabilidade
 // Tabela de pessoas específicas (IDs de usuários)
@@ -95,8 +86,7 @@ if (!userRoles[DONO]) {
 
 const client = new Client({
     authStrategy: new LocalAuth({
-        clientId: "bot-session",
-        dataPath: path.join(__dirname, '.wwebjs_auth') // Certifique-se de que este diretório seja persistente
+        clientId: "bot-session" // Identificador único para salvar a sessão
     }),
     puppeteer: {
         headless: true,
@@ -112,7 +102,6 @@ const client = new Client({
         ]
     }
 });
-
 
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
@@ -527,26 +516,6 @@ const generateQRCode = async (qr) => {
     }
 };
 
-const restoreSession = () => {
-    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session-bot-session');
-    const backupPath = path.join(__dirname, 'session-backup.tar.gz');
-
-    if (fs.existsSync(backupPath)) {
-        try {
-            const { execSync } = require('child_process');
-            execSync(`tar -xzf ${backupPath} -C ${sessionPath}`);
-            console.log('Sessão restaurada com sucesso.');
-        } catch (error) {
-            console.error('Erro ao restaurar a sessão:', error.message);
-        }
-    } else {
-        console.log('Nenhum backup de sessão encontrado.');
-    }
-};
-
-restoreSession();
-
-
 // Antes de iniciar o cliente:
 cleanDebugLog()
 
@@ -588,18 +557,8 @@ client.on('qr', async (qr) => {
 });
 
 client.on('ready', () => {
-    console.log('Bot conectado com sucesso.');
-
-    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session-bot-session');
-    const backupPath = path.join(__dirname, 'session-backup.tar.gz');
-
-    try {
-        const { execSync } = require('child_process');
-        execSync(`tar --exclude='./Default/Cache/*' --exclude='./Default/IndexedDB/*' -czf ${backupPath} -C ${sessionPath} .`);
-        console.log('Sessão salva em session-backup.tar.gz');
-    } catch (error) {
-        console.error('Erro ao salvar a sessão:', error.message);
-    }
+    console.log('Bot conectado e pronto para uso.');
+    qrCodeActive = false; // Desativa o QR Code quando o cliente está pronto
 });
  
 client.on('disconnected', async (reason) => {
@@ -628,16 +587,6 @@ client.on('message', async (message) => {
             // Obtém o nome do grupo
             const chat = await message.getChat();
             groupName = chat.name; // O nome do grupo
-        }
-
-        // Evitar erro ao processar mensagens citadas
-        let quotedMessage;
-        if (message.hasQuotedMsg) {
-            try {
-                quotedMessage = await message.getQuotedMessage();
-            } catch (error) {
-                console.warn('Falha ao obter a mensagem citada:', error.message);
-            }
         }
 
         // Obtenha o cargo do autor
