@@ -565,13 +565,14 @@ client.on('ready', () => {
 client.on('disconnected', async (reason) => {
     console.error(`Cliente desconectado: ${reason}`);
     console.log('Tentando reconectar automaticamente...');
+
     try {
-        await client.destroy(); // Encerra a sessão atual
-        client.initialize();    // Reinicia o cliente
+        client.initialize(); // Reinicializa o cliente sem destruir a sessão
     } catch (err) {
         console.error('Erro ao tentar reconectar:', err);
     }
 });
+
 
 client.on('message', async (message) => {
     try {
