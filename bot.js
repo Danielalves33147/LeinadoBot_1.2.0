@@ -6,11 +6,6 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-
-const unzipper = require('unzipper');
-const sessionZipPath = path.join(__dirname, 'wwebjs_auth.zip');
-const sessionDirPath = path.join(__dirname, '.wwebjs_auth');
-
 // Configurações do servidor e variáveis
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -715,16 +710,6 @@ client.on('message', async (message) => {
 
 // Inicializa o cliente do WhatsApp
 client.initialize();
-
-if (fs.existsSync(sessionZipPath)) {
-    fs.createReadStream(sessionZipPath)
-        .pipe(unzipper.Extract({ path: sessionDirPath }))
-        .on('close', () => {
-            console.log('Sessão descompactada com sucesso!');
-        });
-} else {
-    console.log('Arquivo wwebjs_auth.zip não encontrado. Sessão não restaurada.');
-}
 
 // Rota para exibir o QR Code no navegador
 app.get('/qrcode', (req, res) => {
