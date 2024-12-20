@@ -2,21 +2,31 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const { Poll } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const express = require('express');
+
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
+
+
+const unzipper = require('unzipper');
+const sessionZipPath = path.join(__dirname, 'wwebjs_auth.zip');
+const sessionDirPath = path.join(__dirname, '.wwebjs_auth');
+
 // Configurações do servidor e variáveis
 const app = express();
 const PORT = process.env.PORT || 3000;
 const rolesFilePath = path.join(__dirname, 'userRoles.json');
 let qrCodeActive = false;
+
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
+
 let perdiCounter = 5;
 let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para let
- // Caminho absoluto
 
+
+// Caminho absoluto
 const DONO = '557191165170@c.us'; // Número do Dono
 const GROUP_ID = '120363372145683104@g.us'; //Mensagens para testar durabilidade
+
 // Tabela de pessoas específicas (IDs de usuários)
 const specificUsers = [
     '557191165170@c.us', // Daniel
@@ -82,7 +92,7 @@ const userRoles = loadRoles();
 if (!userRoles[DONO]) {
     userRoles[DONO] = roles.dono; // Adiciona o Dono ao arquivo de roles, se necessário
     saveRoles();
-}
+};
 
 const client = new Client({
     authStrategy: new LocalAuth({
@@ -102,7 +112,6 @@ const client = new Client({
         ]
     }
 });
-
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
     const chat = await message.getChat(); // Agora o await é válido
@@ -136,7 +145,6 @@ const handlePingCommand = async (message, client) => {
        // console.error('Erro ao enviar mensagem no grupo de testes:', error);
     }
 };
-
 
 // Variável global para contar o número de vezes que o comando foi acionado
 const handlePerdiCommand = async (message) => {
@@ -491,7 +499,6 @@ const handleNativePollCommand = async (message) => {
     }
 };
 
-
 const cleanDebugLog = () => {
     const debugLogPath = path.join(__dirname, '.wwebjs_auth', 'session', 'Default', 'chrome_debug.log');
     try {
@@ -542,7 +549,6 @@ setInterval(async () => {
         await client.sendMessage(GROUP_ID, `✅ O bot está ativo e funcionando normalmente. [${currentDateTime}]`);
     }
 }, 14400000); // A cada 4 horas
-
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
@@ -710,6 +716,16 @@ client.on('message', async (message) => {
 // Inicializa o cliente do WhatsApp
 client.initialize();
 
+if (fs.existsSync(sessionZipPath)) {
+    fs.createReadStream(sessionZipPath)
+        .pipe(unzipper.Extract({ path: sessionDirPath }))
+        .on('close', () => {
+            console.log('Sessão descompactada com sucesso!');
+        });
+} else {
+    console.log('Arquivo wwebjs_auth.zip não encontrado. Sessão não restaurada.');
+}
+
 // Rota para exibir o QR Code no navegador
 app.get('/qrcode', (req, res) => {
     if (qrCodeActive && fs.existsSync('./qrcode.png')) {
@@ -718,7 +734,6 @@ app.get('/qrcode', (req, res) => {
         res.send('<h1>QR Code expirado ou bot já conectado. Aguarde...</h1>');
     }
 });
-
 
 process.on('SIGTERM', () => {
     console.log('Recebido SIGTERM. Finalizando o processo...');
@@ -732,7 +747,6 @@ process.on('SIGTERM', () => {
             process.exit(1); // Finaliza com erro
         });
 });
-
 
 // Inicia o servidor Express
 app.listen(PORT, () => {
