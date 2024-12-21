@@ -92,12 +92,22 @@ if (!userRoles[DONO]) {
 const client = new Client({
     authStrategy: new LocalAuth({
         clientId: "bot-session",
-        dataPath: "./wwebjs_auth", // Diretório onde as sessões são salvas
+        dataPath: "./wwebjs_auth", // Diretório persistente para Railway
     }),
     puppeteer: {
         headless: true,
+        args: [
+            '--no-sandbox',         // Resolvido: Adicione esta flag
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process',
+        ],
     },
 });
+
 
 
 
