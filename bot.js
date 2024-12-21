@@ -92,12 +92,13 @@ if (!userRoles[DONO]) {
 const client = new Client({
     authStrategy: new LocalAuth({
         clientId: "bot-session",
-        dataPath: "/data/sessions", // Use o volume persistente do Railway
+        dataPath: "./wwebjs_auth", // Diretório onde as sessões são salvas
     }),
     puppeteer: {
         headless: true,
     },
 });
+
 
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
