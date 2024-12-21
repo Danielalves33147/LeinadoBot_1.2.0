@@ -91,22 +91,14 @@ if (!userRoles[DONO]) {
 
 const client = new Client({
     authStrategy: new LocalAuth({
-        clientId: "bot-session" // Identificador único para salvar a sessão
+        clientId: "bot-session",
+        dataPath: "/data/sessions", // Use o volume persistente do Railway
     }),
     puppeteer: {
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-            '--no-zygote',
-            '--single-process',
-            '--disable-dev-tools'
-        ]
-    }
+    },
 });
+
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
     const chat = await message.getChat(); // Agora o await é válido
