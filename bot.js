@@ -109,8 +109,6 @@ const client = new Client({
 });
 
 
-
-
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
     const chat = await message.getChat(); // Agora o await é válido
     const isGroup = chat.isGroup;
@@ -218,6 +216,31 @@ const handleHelpCommand = (message, senderRole) => {
     message.reply(`📜 *Comandos Disponíveis (${adjustedRole}):*\n\n${availableCommands}`);
 };
 
+const handleIOSMentions = async (chat, participants) => {
+    try {
+        // Filtra apenas os IDs que pertencem a iOS (pode precisar de ajustes baseados no formato do ID)
+        const iosParticipants = participants.filter(participant => participant.id._serialized.includes('@s.whatsapp.net'));
+
+        if (iosParticipants.length === 0) {
+            console.log('Nenhum participante de iOS identificado.');
+            return;
+        }
+
+        // Obtém contatos e formata para menções
+        const iosMentions = iosParticipants.map(participant => participant.id._serialized);
+
+        // Envia uma mensagem com as menções para iOS
+        await chat.sendMessage('📍​Chamando usuários iOS📍​', {
+            mentions: iosMentions.map(id => ({ id })),
+        });
+
+        console.log('Mensagem enviada para usuários de iOS.');
+    } catch (error) {
+        console.error('Erro ao marcar usuários de iOS:', error);
+    }
+};
+
+
 const handleAllCommand = async (message) => {
     try {
         const chat = await message.getChat();
@@ -227,7 +250,8 @@ const handleAllCommand = async (message) => {
             return;
         }
 
-        //console.log(`Comando "!all" detectado no grupo: ${chat.name}`);
+        // Atualiza os contatos
+        await client.refreshContacts();
 
         // Obtém os participantes do grupo
         const participants = chat.participants;
@@ -238,19 +262,41 @@ const handleAllCommand = async (message) => {
 
         // Mapeia os contatos para menções
         const mentions = await Promise.all(
-            participants.map((participant) => client.getContactById(participant.id._serialized))
-        );
+            participants.map(async (participant) => {
+                const contact = await client.getContactById(participant.id._serialized);
+                if (contact.isWAContact) {
+                    return contact.id._serialized;
+                }
+                return null;
+            })
+        ).filter(Boolean); // Remove entradas inválidas
+
+        // Verifica se existem menções válidas
+        if (mentions.length === 0) {
+            message.reply('Nenhum participante válido encontrado.');
+            return;
+        }
 
         // Envia a mensagem com as menções ocultas
-        await chat.sendMessage('📍​Chamando todo mundo📍​', { mentions });
-        //console.log("TODOS AQUI : ",participants)
+        await chat.sendMessage('📍​Chamando todo mundo📍​', {
+            mentions: mentions.map((id) => ({ id })),
+        });
 
-        //console.log(`Mensagem com menções invisíveis enviada para o grupo: ${chat.name}`);
+        console.log(`Mensagem enviada para o grupo: ${chat.name}`);
     } catch (error) {
         console.error('Erro ao executar o comando !all:', error);
         message.reply('Algo deu errado, tente novamente!');
     }
 };
+
+
+
+
+
+
+
+
+
 
 const handleAddCargoCommand = (message, args) => {
     const [rawUserId, roleKey] = args;
@@ -523,6 +569,8 @@ const generateQRCode = async (qr) => {
 
 // Antes de iniciar o cliente:
 cleanDebugLog()
+
+
 
 // // Função principal para monitorar a conexão e enviar mensagens
 // setInterval(async () => {
