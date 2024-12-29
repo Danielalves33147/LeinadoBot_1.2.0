@@ -524,29 +524,29 @@ const generateQRCode = async (qr) => {
 // Antes de iniciar o cliente:
 cleanDebugLog()
 
-// Função principal para monitorar a conexão e enviar mensagens
-setInterval(async () => {
-    const currentDateTime = new Date().toLocaleString(); // Data e hora atual
-    console.log(`[${currentDateTime}] Verificando conexão do cliente...`);
+// // Função principal para monitorar a conexão e enviar mensagens
+// setInterval(async () => {
+//     const currentDateTime = new Date().toLocaleString(); // Data e hora atual
+//     console.log(`[${currentDateTime}] Verificando conexão do cliente...`);
 
-    if (!client.info || !client.info.pushname) {
-        console.log(`[${currentDateTime}] Cliente desconectado. Tentando reconectar...`);
-        try {
-            await client.destroy(); // Encerra a sessão
-            client.initialize();    // Reinicia o cliente
+//     if (!client.info || !client.info.pushname) {
+//         console.log(`[${currentDateTime}] Cliente desconectado. Tentando reconectar...`);
+//         try {
+//             await client.destroy(); // Encerra a sessão
+//             client.initialize();    // Reinicia o cliente
 
-            // Envia mensagem no grupo informando a desconexão e tentativa de reconexão
-            await client.sendMessage(GROUP_ID, `⚠️ O bot foi desconectado e está tentando reconectar... [${currentDateTime}]`);
-        } catch (error) {
-            console.error(`[${currentDateTime}] Erro ao tentar reconectar:`, error);
-        }
-    } else {
-        console.log(`[${currentDateTime}] Cliente está ativo.`);
+//             // Envia mensagem no grupo informando a desconexão e tentativa de reconexão
+//             await client.sendMessage(GROUP_ID, `⚠️ O bot foi desconectado e está tentando reconectar... [${currentDateTime}]`);
+//         } catch (error) {
+//             console.error(`[${currentDateTime}] Erro ao tentar reconectar:`, error);
+//         }
+//     } else {
+//         console.log(`[${currentDateTime}] Cliente está ativo.`);
 
-        // Envia mensagem no grupo confirmando que o bot está online
-        await client.sendMessage(GROUP_ID, `✅ O bot está ativo e funcionando normalmente. [${currentDateTime}]`);
-    }
-}, 14400000); // A cada 4 horas
+//         // Envia mensagem no grupo confirmando que o bot está online
+//         await client.sendMessage(GROUP_ID, `✅ O bot está ativo e funcionando normalmente. [${currentDateTime}]`);
+//     }
+// }, 14400000); // A cada 4 horas
 
 // Eventos do cliente
 client.on('qr', async (qr) => {
