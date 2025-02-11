@@ -240,7 +240,6 @@ const handleIOSMentions = async (chat, participants) => {
     }
 };
 
-
 const handleAllCommand = async (message) => {
     try {
         const chat = await message.getChat();
@@ -250,9 +249,6 @@ const handleAllCommand = async (message) => {
             return;
         }
 
-        // Atualiza os contatos
-        await client.refreshContacts();
-
         // Obtém os participantes do grupo
         const participants = chat.participants;
         if (!participants || participants.length === 0) {
@@ -261,15 +257,15 @@ const handleAllCommand = async (message) => {
         }
 
         // Mapeia os contatos para menções
-        const mentions = await Promise.all(
+        const resolvedContacts = await Promise.all(
             participants.map(async (participant) => {
                 const contact = await client.getContactById(participant.id._serialized);
-                if (contact.isWAContact) {
-                    return contact.id._serialized;
-                }
-                return null;
+                return contact.isWAContact ? contact.id._serialized : null;
             })
-        ).filter(Boolean); // Remove entradas inválidas
+        );
+
+        // Remove valores nulos/indefinidos
+        const mentions = resolvedContacts.filter(Boolean);
 
         // Verifica se existem menções válidas
         if (mentions.length === 0) {
@@ -277,9 +273,9 @@ const handleAllCommand = async (message) => {
             return;
         }
 
-        // Envia a mensagem com as menções ocultas
+        // Envia a mensagem com as menções corretas
         await chat.sendMessage('📍​Chamando todo mundo📍​', {
-            mentions: mentions.map((id) => ({ id })),
+            mentions: mentions, // Agora está correto
         });
 
         console.log(`Mensagem enviada para o grupo: ${chat.name}`);
@@ -288,14 +284,6 @@ const handleAllCommand = async (message) => {
         message.reply('Algo deu errado, tente novamente!');
     }
 };
-
-
-
-
-
-
-
-
 
 
 const handleAddCargoCommand = (message, args) => {
