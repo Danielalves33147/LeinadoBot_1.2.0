@@ -13,7 +13,7 @@ const rolesFilePath = path.join(__dirname, 'userRoles.json');
 let qrCodeActive = false;
 
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
-let menosumaCounter = 30;
+let menosumaCounter = 31;
 let perdiCounter = 5;
 let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para let
 
@@ -179,7 +179,8 @@ const handleMenosUmaCommand = async (message) => {
         menosumaCounter += 1;
 
         // Gera a mensagem com as menções
-        const mentionText = `O matador ataca de novo, mais uma adicionada ao "Menos uma!" Total - ${menosumaCounter}`;
+        const mentionText = `O devorador ataca novamente,  Menos uma disponivel,  Total - ${menosumaCounter}`;
+        const mentionText = ` `;
         const mentions = await Promise.all(
             specificUsers.map((id) => client.getContactById(id))
         );
