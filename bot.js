@@ -179,8 +179,7 @@ const handleMenosUmaCommand = async (message) => {
         menosumaCounter += 1;
 
         // Gera a mensagem com as menções
-        const mentionText = `O devorador ataca novamente,  Menos uma disponivel,  Total - ${menosumaCounter}`;
-        const mentionText = ` `;
+        const mentionText = `O devorador ataca novamente,\nMenos uma disponível,\nTotal - ${menosumaCounter}\n\n`;
         const mentions = await Promise.all(
             specificUsers.map((id) => client.getContactById(id))
         );
