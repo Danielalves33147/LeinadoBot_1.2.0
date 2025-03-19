@@ -13,7 +13,7 @@ const rolesFilePath = path.join(__dirname, 'userRoles.json');
 let qrCodeActive = false;
 
 //const senderRole = getUserRole(message.from); // Obtém o papel do remetente
-
+let menosumaCounter = 30;
 let perdiCounter = 5;
 let qrImagePath = path.join(__dirname, 'qrcode.png'); // Alterado de const para let
 
@@ -153,6 +153,33 @@ const handlePerdiCommand = async (message) => {
 
         // Gera a mensagem com as menções
         const mentionText = `Perdemos ${perdiCounter} vez(es), e subindo! 😔\nMarcando:`;
+        const mentions = await Promise.all(
+            specificUsers.map((id) => client.getContactById(id))
+        );
+
+        // Envia a mensagem mencionando as pessoas da tabela
+        await chat.sendMessage(`${mentionText} ${mentions.map((user) => `@${user.id.user}`).join(' ')}`, {
+            mentions
+        });
+
+        //console.log(`Mensagem enviada com ${mentions.length} menções.`);
+    } catch (error) {
+        //console.error('Erro ao executar o comando !perdi:', error.message);
+        await message.reply('❌ Não foi possível executar o comando no momento.');
+    }
+};
+
+// Variável global para contar o número de vezes que o comando foi acionado
+const handleMenosUmaCommand = async (message) => {
+    try {
+        // Obtém o chat associado à mensagem
+        const chat = await message.getChat();
+
+        // Incrementa o contador
+        menosumaCounter += 1;
+
+        // Gera a mensagem com as menções
+        const mentionText = `O matador ataca de novo, mais uma adicionada ao "Menos uma!" Total - ${menosumaCounter}`;
         const mentions = await Promise.all(
             specificUsers.map((id) => client.getContactById(id))
         );
@@ -714,6 +741,13 @@ client.on('message', async (message) => {
                     handlePerdiCommand(message);
                 });
                 break;
+
+            case '!menosuma':
+                    // Apenas Comandante e acima podem usar
+                    executeCommandWithRoleCheck(message, ['Comandante', 'Almirante', 'Yonkō', 'Dono'], () => {
+                        handleMenosUmaCommand(message);
+                    });
+                    break;    
         
             case '!ranks':
                 // Apenas Comandante e acima podem consultar hierarquia
