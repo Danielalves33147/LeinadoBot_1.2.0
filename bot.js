@@ -868,14 +868,6 @@ app.get('/qrcode', (req, res) => {
     }
 });
 
-client.on('disconnected', async (reason) => {
-    console.error(`Cliente desconectado: ${reason}`);
-    try {
-        await client.destroy();
-        await client.initialize(); // reinicia a sessão
-    } catch (err) {
-        console.error('Erro ao tentar reconectar:', err);
-    }
-});
+
 
 
