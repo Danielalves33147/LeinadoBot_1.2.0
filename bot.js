@@ -785,12 +785,37 @@ client.on('message', async (message) => {
 // Inicializa o cliente do WhatsApp
 client.initialize();
 
+let lastQRCodeBase64 = null;
 // Rota para exibir o QR Code no navegador
+client.on('qr', async (qr) => {
+    console.log('Novo QR Code gerado.');
+    qrCodeActive = true;
+    
+    // Gera e salva em base64 (em memória)
+    qrcode.toDataURL(qr, (err, url) => {
+        if (err) {
+            console.error('Erro ao gerar QR base64:', err);
+            return;
+        }
+        lastQRCodeBase64 = url;
+    });
+
+    // Também exibe no terminal
+    qrcodeTerminal.generate(qr, { small: true });
+});
+
 app.get('/qrcode', (req, res) => {
-    if (qrCodeActive && fs.existsSync('./qrcode.png')) {
-        res.sendFile(path.join(__dirname, 'qrcode.png'));
+    if (qrCodeActive && lastQRCodeBase64) {
+        res.send(`
+            <html>
+                <body style="text-align:center;">
+                    <h2>Escaneie o QR Code abaixo:</h2>
+                    <img src="${lastQRCodeBase64}" alt="QR Code" />
+                </body>
+            </html>
+        `);
     } else {
-        res.send('<h1>QR Code expirado ou bot já conectado. Aguarde...</h1>');
+        res.send('<h1>QR Code expirado ou bot já conectado.</h1>');
     }
 });
 
