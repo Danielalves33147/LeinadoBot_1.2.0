@@ -833,22 +833,49 @@ process.on('SIGTERM', () => {
 });
 
 // Inicia o servidor Express
-app.listen(PORT, () => {
-    //console.log(`Servidor Online`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
+
 
 client.on('qr', async (qr) => {
     console.log('Novo QR Code gerado.');
     qrCodeActive = true;
     
-    // Exibe o QR Code no terminal (ASCII)
+    qrcode.toDataURL(qr, (err, url) => {
+        if (err) {
+            console.error('Erro ao gerar QR base64:', err);
+            return;
+        }
+        lastQRCodeBase64 = url;
+    });
+
     qrcodeTerminal.generate(qr, { small: true });
-    
-    try {
-        // Salva o QR Code como imagem (opcional)
-        await qrcode.toFile('./qrcode.png', qr);
-    } catch (err) {
-        console.error('Erro ao gerar o QR Code:', err);
+});
+
+app.get('/qrcode', (req, res) => {
+    if (qrCodeActive && lastQRCodeBase64) {
+        res.send(`
+            <html>
+                <body style="text-align:center;">
+                    <h2>Escaneie o QR Code abaixo:</h2>
+                    <img src="${lastQRCodeBase64}" alt="QR Code" />
+                </body>
+            </html>
+        `);
+    } else {
+        res.send('<h1>QR Code expirado ou bot já conectado.</h1>');
     }
 });
+
+client.on('disconnected', async (reason) => {
+    console.error(`Cliente desconectado: ${reason}`);
+    try {
+        await client.destroy();
+        await client.initialize(); // reinicia a sessão
+    } catch (err) {
+        console.error('Erro ao tentar reconectar:', err);
+    }
+});
+
 
