@@ -96,7 +96,7 @@ const client = new Client({
     }),
     puppeteer: {
         executablePath: '/usr/bin/google-chrome-stable',
-        headless: true,
+        headless: new,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
