@@ -95,8 +95,8 @@ const client = new Client({
         dataPath: "./wwebjs_auth",
     }),
     puppeteer: {
-        headless: true,
         executablePath: '/usr/bin/google-chrome',
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -105,9 +105,25 @@ const client = new Client({
             '--disable-gpu',
             '--no-zygote',
             '--single-process',
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-breakpad',
+            '--disable-client-side-phishing-detection',
+            '--disable-component-update',
+            '--disable-default-apps',
+            '--disable-features=site-per-process',
+            '--disable-hang-monitor',
+            '--disable-popup-blocking',
+            '--disable-prompt-on-repost',
+            '--disable-sync',
+            '--metrics-recording-only',
+            '--no-first-run',
+            '--safebrowsing-disable-auto-update',
+            '--enable-automation',
         ],
     },
 });
+
 
 
 
