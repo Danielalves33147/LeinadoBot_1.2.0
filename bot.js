@@ -95,7 +95,7 @@ const client = new Client({
         dataPath: "./wwebjs_auth",
     }),
     puppeteer: {
-        executablePath: '/usr/bin/google-chrome',
+        executablePath: '/usr/bin/google-chrome-stable',
         headless: true,
         args: [
             '--no-sandbox',
