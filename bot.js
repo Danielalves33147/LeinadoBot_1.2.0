@@ -840,6 +840,15 @@ process.on('SIGTERM', () => {
         });
 });
 
+app.get('/', (req, res) => {
+    res.send(`
+        <h1>🤖 Leinadobot está online!</h1>
+        <p>Se você está vendo esta página, significa que o servidor está funcionando corretamente.</p>
+        <p>Use o WhatsApp para interagir com os comandos.</p>
+    `);
+});
+
+
 // Inicia o servidor Express
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
