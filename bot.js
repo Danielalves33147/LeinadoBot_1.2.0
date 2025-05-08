@@ -92,12 +92,13 @@ if (!userRoles[DONO]) {
 const client = new Client({
     authStrategy: new LocalAuth({
         clientId: "bot-session",
-        dataPath: "./wwebjs_auth", // Diretório persistente para Railway
+        dataPath: "./wwebjs_auth",
     }),
     puppeteer: {
         headless: true,
+        executablePath: '/usr/bin/google-chrome',
         args: [
-            '--no-sandbox',         // Resolvido: Adicione esta flag
+            '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
@@ -107,6 +108,7 @@ const client = new Client({
         ],
     },
 });
+
 
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
