@@ -1,4 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const puppeteer = require('puppeteer'); // novo
+
 const { Poll } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const express = require('express');
@@ -99,30 +101,18 @@ const client = new Client({
         headless: 'new',
         args: [
             '--no-sandbox',
-            '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
             '--disable-gpu',
-            '--no-zygote',
-            '--single-process',
             '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-breakpad',
-            '--disable-client-side-phishing-detection',
-            '--disable-component-update',
-            '--disable-default-apps',
-            '--disable-features=site-per-process',
-            '--disable-hang-monitor',
             '--disable-popup-blocking',
-            '--disable-prompt-on-repost',
-            '--disable-sync',
-            '--metrics-recording-only',
             '--no-first-run',
-            '--safebrowsing-disable-auto-update',
-            '--enable-automation',
+            '--disable-sync',
+            '--disable-features=TranslateUI,BlinkGenPropertyTrees',
+            '--metrics-recording-only',
         ],
     },
 });
+
 
 
 
