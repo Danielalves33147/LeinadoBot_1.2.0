@@ -426,10 +426,6 @@ const handleSorteioCommand = async (message, chat) => {
 };
 
 
-const fs = require('fs');
-const path = require('path');
-const ffmpeg = require('fluent-ffmpeg');
-const { MessageMedia } = require('whatsapp-web.js');
 
 const handleStickerCommand = async (message) => {
     try {
