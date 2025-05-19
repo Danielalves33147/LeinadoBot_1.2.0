@@ -8,6 +8,8 @@ const qrcodeTerminal = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
 
+const ffmpeg = require('fluent-ffmpeg'); // para gerar stickers com video
+
 // Configurações do servidor e variáveis
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -434,38 +436,71 @@ const handleStickerCommand = async (message) => {
         const media = await mediaMessage.downloadMedia();
 
         if (!media) {
-            await message.reply('❌ Nenhuma mídia detectada. Envie ou responda uma imagem ou vídeo curto (máx. 6s).');
-            return;
+            return message.reply('❌ Nenhuma mídia detectada. Envie ou responda uma imagem ou vídeo curto (até 6 segundos).');
         }
 
-        // Detecta tipo de mídia
-        const mime = media.mimetype || '';
+        const mime = media.mimetype;
         const isVideo = mime.startsWith('video');
         const isImage = mime.startsWith('image');
 
         if (!isImage && !isVideo) {
-            await message.reply('❌ A mídia enviada não é imagem nem vídeo. Use apenas imagens ou vídeos curtos.');
-            return;
+            return message.reply('❌ Envie uma imagem ou vídeo curto para gerar figurinha.');
         }
 
-        if (isVideo) {
-            // Aviso: o WhatsApp só aceita vídeos curtos como figurinha (~6s máx)
-            // O whatsapp-web.js não fornece duração, então não temos como validar sem processar o vídeo (o que exige ffmpeg)
-            await message.reply('⚠️ Tentando processar vídeo... Certifique-se de que ele tenha **no máximo 6 segundos**.');
+        if (isImage) {
+            return message.reply(media, undefined, {
+                sendMediaAsSticker: true,
+                stickerAuthor: 'LeinadoBot',
+                stickerName: 'Feita por você',
+            });
         }
 
-        // Tenta enviar como figurinha
-        await message.reply(media, undefined, {
-            sendMediaAsSticker: true,
-            stickerAuthor: 'LeinadoBot',
-            stickerName: 'Feita por você',
-        });
+        // ⚠️ PROCESSAMENTO DE VÍDEO
+        const buffer = Buffer.from(media.data, 'base64');
+        const inputPath = path.join(__dirname, 'temp_input.mp4');
+        const outputPath = path.join(__dirname, 'temp_output.webp');
 
-        console.log('✅ Figurinha enviada.');
+        fs.writeFileSync(inputPath, buffer);
+
+        ffmpeg(inputPath)
+            .inputFormat('mp4')
+            .outputOptions([
+                '-vcodec libwebp',
+                '-vf scale=512:512:force_original_aspect_ratio=decrease,fps=15',
+                '-lossless 1',
+                '-preset default',
+                '-an',
+                '-vsync 0'
+            ])
+            .duration(6) // Máx 6s
+            .output(outputPath)
+            .on('end', async () => {
+                const stickerBuffer = fs.readFileSync(outputPath);
+                const base64 = stickerBuffer.toString('base64');
+
+                await message.reply(
+                    {
+                        mimetype: 'image/webp',
+                        data: base64,
+                    },
+                    undefined,
+                    { sendMediaAsSticker: true }
+                );
+
+                // Limpa arquivos temporários
+                fs.unlinkSync(inputPath);
+                fs.unlinkSync(outputPath);
+            })
+            .on('error', async (err) => {
+                console.error('Erro no ffmpeg:', err);
+                await message.reply('❌ Erro ao processar o vídeo. Tente com outro mais curto ou diferente.');
+                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+            })
+            .run();
 
     } catch (error) {
-        console.error('❌ Erro ao criar figurinha:', error);
-        await message.reply('❌ Ocorreu um erro ao gerar a figurinha. Tente novamente com outra mídia.');
+        console.error('Erro geral ao gerar figurinha:', error);
+        message.reply('❌ Algo deu errado ao criar a figurinha.');
     }
 };
 
