@@ -425,6 +425,12 @@ const handleSorteioCommand = async (message, chat) => {
     }
 };
 
+
+const fs = require('fs');
+const path = require('path');
+const ffmpeg = require('fluent-ffmpeg');
+const { MessageMedia } = require('whatsapp-web.js');
+
 const handleStickerCommand = async (message) => {
     try {
         let mediaMessage = message;
@@ -435,7 +441,7 @@ const handleStickerCommand = async (message) => {
         const media = await mediaMessage.downloadMedia();
 
         if (!media) {
-            await message.reply('❌ Nenhuma mídia detectada.');
+            await message.reply('❌ Nenhuma mídia detectada. Envie ou responda uma imagem ou vídeo curto.');
             return;
         }
 
@@ -446,7 +452,7 @@ const handleStickerCommand = async (message) => {
         console.log('📦 Tipo de mídia:', mime);
 
         if (!isImage && !isVideo) {
-            await message.reply('❌ Envie uma imagem ou vídeo curto para figurinha.');
+            await message.reply('❌ Envie uma imagem ou vídeo curto para gerar figurinha.');
             return;
         }
 
@@ -460,7 +466,7 @@ const handleStickerCommand = async (message) => {
             return;
         }
 
-        // Se for vídeo, salvar e converter
+        // Se for vídeo, salvar, converter e reenviar como figurinha
         console.log('🎬 Processando vídeo...');
 
         const buffer = Buffer.from(media.data, 'base64');
@@ -473,7 +479,7 @@ const handleStickerCommand = async (message) => {
         ffmpeg(inputPath)
             .inputFormat('mp4')
             .outputOptions([
-                '-vcodec libwebp',
+                '-vcodec', 'libwebp',
                 '-vf', 'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
                 '-lossless', '1',
                 '-preset', 'default',
@@ -485,16 +491,13 @@ const handleStickerCommand = async (message) => {
             .on('end', async () => {
                 console.log('✅ Conversão finalizada. Enviando figurinha...');
                 const stickerBuffer = fs.readFileSync(outputPath);
-                const base64 = stickerBuffer.toString('base64');
+                const media = new MessageMedia('image/webp', stickerBuffer.toString('base64'));
 
-                await message.reply(
-                    {
-                        mimetype: 'image/webp',
-                        data: base64,
-                    },
-                    undefined,
-                    { sendMediaAsSticker: true }
-                );
+                await message.reply(media, undefined, {
+                    sendMediaAsSticker: true,
+                    stickerAuthor: 'LeinadoBot',
+                    stickerName: 'Feita por você',
+                });
 
                 fs.unlinkSync(inputPath);
                 fs.unlinkSync(outputPath);
@@ -502,8 +505,9 @@ const handleStickerCommand = async (message) => {
             })
             .on('error', async (err) => {
                 console.error('🚨 ffmpeg ERRO:', err.message);
-                await message.reply('❌ Não consegui processar o vídeo. Tente outro.');
+                await message.reply('❌ Não consegui processar o vídeo. Tente outro mais curto ou diferente.');
                 if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
             })
             .run();
 
@@ -512,7 +516,6 @@ const handleStickerCommand = async (message) => {
         await message.reply('❌ Algo deu errado ao criar a figurinha.');
     }
 };
-
 
 
 const handleListParticipantsCommand = async (message, chat) => {
