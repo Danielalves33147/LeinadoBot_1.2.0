@@ -424,15 +424,51 @@ const handleSorteioCommand = async (message, chat) => {
 };
 
 const handleStickerCommand = async (message) => {
-    const media = await message.downloadMedia();
-    if (!media) {
-        message.reply('Não consegui processar a mídia. Certifique-se de que está enviando uma imagem ou vídeo.');
-        return;
-    }
+    try {
+        let mediaMessage = message;
 
-    await message.reply(media, undefined, { sendMediaAsSticker: true });
-    //console.log('Sticker gerado com sucesso.');
+        if (message.hasQuotedMsg) {
+            mediaMessage = await message.getQuotedMessage();
+        }
+
+        const media = await mediaMessage.downloadMedia();
+
+        if (!media) {
+            await message.reply('❌ Nenhuma mídia detectada. Envie ou responda uma imagem ou vídeo curto (máx. 6s).');
+            return;
+        }
+
+        // Detecta tipo de mídia
+        const mime = media.mimetype || '';
+        const isVideo = mime.startsWith('video');
+        const isImage = mime.startsWith('image');
+
+        if (!isImage && !isVideo) {
+            await message.reply('❌ A mídia enviada não é imagem nem vídeo. Use apenas imagens ou vídeos curtos.');
+            return;
+        }
+
+        if (isVideo) {
+            // Aviso: o WhatsApp só aceita vídeos curtos como figurinha (~6s máx)
+            // O whatsapp-web.js não fornece duração, então não temos como validar sem processar o vídeo (o que exige ffmpeg)
+            await message.reply('⚠️ Tentando processar vídeo... Certifique-se de que ele tenha **no máximo 6 segundos**.');
+        }
+
+        // Tenta enviar como figurinha
+        await message.reply(media, undefined, {
+            sendMediaAsSticker: true,
+            stickerAuthor: 'LeinadoBot',
+            stickerName: 'Feita por você',
+        });
+
+        console.log('✅ Figurinha enviada.');
+
+    } catch (error) {
+        console.error('❌ Erro ao criar figurinha:', error);
+        await message.reply('❌ Ocorreu um erro ao gerar a figurinha. Tente novamente com outra mídia.');
+    }
 };
+
 
 const handleListParticipantsCommand = async (message, chat) => {
     try {
