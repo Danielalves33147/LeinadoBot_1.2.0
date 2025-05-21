@@ -792,25 +792,6 @@ client.on('message', async (message) => {
     }
 });
 
-// Inicializa o cliente do WhatsApp + whatdog
-client.initialize();
-
-// Watchdog: reinicia o processo se o bot aparentar estar travado
-setInterval(() => {
-    const dataHora = new Date().toLocaleString('pt-BR');
-    if (!client.info || !client.info.pushname) {
-        console.warn(`[${dataHora}] ⚠️ Watchdog detectou travamento. Reiniciando o processo via PM2...`);
-        process.exit(1); // Isso faz o PM2 reiniciar automaticamente
-    } else {
-        // Opcional: para verificação manual
-        //console.log(`[${dataHora}] ✅ Bot ainda responde. Status: ${client.info.pushname}`);
-    }
-}, 600000); // Executa a cada 10 minutos
-
-
-
-
-
 let lastQRCodeBase64 = null;
 // Rota para exibir o QR Code no navegador
 client.on('qr', async (qr) => {
@@ -829,6 +810,21 @@ client.on('qr', async (qr) => {
     // Também exibe no terminal
     qrcodeTerminal.generate(qr, { small: true });
 });
+
+// Inicializa o cliente do WhatsApp + whatdog
+client.initialize();
+
+// Watchdog: reinicia o processo se o bot aparentar estar travado
+setInterval(() => {
+    const dataHora = new Date().toLocaleString('pt-BR');
+    if (!client.info || !client.info.pushname) {
+        console.warn(`[${dataHora}] ⚠️ Watchdog detectou travamento. Reiniciando o processo via PM2...`);
+        process.exit(1); // Isso faz o PM2 reiniciar automaticamente
+    } else {
+        // Opcional: para verificação manual
+        //console.log(`[${dataHora}] ✅ Bot ainda responde. Status: ${client.info.pushname}`);
+    }
+}, 600000); // Executa a cada 10 minutos
 
 app.get('/qrcode', (req, res) => {
     if (qrCodeActive && lastQRCodeBase64) {
@@ -873,35 +869,8 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 
-client.on('qr', async (qr) => {
-    console.log('Novo QR Code gerado.');
-    qrCodeActive = true;
-    
-    qrcode.toDataURL(qr, (err, url) => {
-        if (err) {
-            console.error('Erro ao gerar QR base64:', err);
-            return;
-        }
-        lastQRCodeBase64 = url;
-    });
 
-    qrcodeTerminal.generate(qr, { small: true });
-});
 
-app.get('/qrcode', (req, res) => {
-    if (qrCodeActive && lastQRCodeBase64) {
-        res.send(`
-            <html>
-                <body style="text-align:center;">
-                    <h2>Escaneie o QR Code abaixo:</h2>
-                    <img src="${lastQRCodeBase64}" alt="QR Code" />
-                </body>
-            </html>
-        `);
-    } else {
-        res.send('<h1>QR Code expirado ou bot já conectado.</h1>');
-    }
-});
 
 
 
