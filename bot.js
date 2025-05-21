@@ -854,3 +854,12 @@ app.get('/', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+
+// Reinicialização programada automática a cada 6h
+setInterval(() => {
+    const agora = new Date().toLocaleString('pt-BR');
+    console.log(`[${agora}] 🔁 Reinicialização preventiva do bot via PM2.`);
+    process.exit(1); // PM2 vai reiniciar automaticamente
+}, 1000 * 60 * 60 * 6); // 6 horas
+
