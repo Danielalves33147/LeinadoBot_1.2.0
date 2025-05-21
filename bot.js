@@ -800,7 +800,7 @@ setInterval(() => {
         // Opcional: para verificação manual
         //console.log(`[${dataHora}] ✅ Bot ainda responde. Status: ${client.info.pushname}`);
     }
-}, 600000); // Executa a cada 10 minutos
+}, 60000); // Executa a cada 1 minutos
 
 
 if (!global.gc) {
