@@ -1,3 +1,5 @@
+console.log(`[${new Date().toLocaleString()}] 🔄 Bot iniciado ou reiniciado`);
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const puppeteer = require('puppeteer'); // novo
 
@@ -7,8 +9,6 @@ const express = require('express');
 const qrcodeTerminal = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
-
-const ffmpeg = require('fluent-ffmpeg'); // para gerar stickers com video
 
 // Configurações do servidor e variáveis
 const app = express();
@@ -425,94 +425,16 @@ const handleSorteioCommand = async (message, chat) => {
     }
 };
 
-
-
 const handleStickerCommand = async (message) => {
-    try {
-        let mediaMessage = message;
-        if (message.hasQuotedMsg) {
-            mediaMessage = await message.getQuotedMessage();
-        }
-
-        const media = await mediaMessage.downloadMedia();
-
-        if (!media) {
-            await message.reply('❌ Nenhuma mídia detectada. Envie ou responda uma imagem ou vídeo curto.');
-            return;
-        }
-
-        const mime = media.mimetype;
-        const isVideo = mime.startsWith('video');
-        const isImage = mime.startsWith('image');
-
-        console.log('📦 Tipo de mídia:', mime);
-
-        if (!isImage && !isVideo) {
-            await message.reply('❌ Envie uma imagem ou vídeo curto para gerar figurinha.');
-            return;
-        }
-
-        if (isImage) {
-            console.log('🖼️ Enviando imagem como figurinha...');
-            await message.reply(media, undefined, {
-                sendMediaAsSticker: true,
-                stickerAuthor: 'LeinadoBot',
-                stickerName: 'Feita por você',
-            });
-            return;
-        }
-
-        // Se for vídeo, salvar, converter e reenviar como figurinha
-        console.log('🎬 Processando vídeo...');
-
-        const buffer = Buffer.from(media.data, 'base64');
-        const inputPath = path.join(__dirname, 'temp_input.mp4');
-        const outputPath = path.join(__dirname, 'temp_output.webp');
-
-        fs.writeFileSync(inputPath, buffer);
-        console.log('✅ Vídeo salvo:', inputPath);
-
-        ffmpeg(inputPath)
-            .inputFormat('mp4')
-            .outputOptions([
-                '-vcodec', 'libwebp',
-                '-vf', 'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
-                '-lossless', '1',
-                '-preset', 'default',
-                '-an',
-                '-vsync', '0'
-            ])
-            .duration(6)
-            .output(outputPath)
-            .on('end', async () => {
-                console.log('✅ Conversão finalizada. Enviando figurinha...');
-                const stickerBuffer = fs.readFileSync(outputPath);
-                const media = new MessageMedia('image/webp', stickerBuffer.toString('base64'));
-
-                await message.reply(media, undefined, {
-                    sendMediaAsSticker: true,
-                    stickerAuthor: 'LeinadoBot',
-                    stickerName: 'Feita por você',
-                });
-
-                fs.unlinkSync(inputPath);
-                fs.unlinkSync(outputPath);
-                console.log('🧹 Arquivos temporários removidos.');
-            })
-            .on('error', async (err) => {
-                console.error('🚨 ffmpeg ERRO:', err.message);
-                await message.reply('❌ Não consegui processar o vídeo. Tente outro mais curto ou diferente.');
-                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-            })
-            .run();
-
-    } catch (error) {
-        console.error('❌ Erro geral ao gerar figurinha:', error);
-        await message.reply('❌ Algo deu errado ao criar a figurinha.');
+    const media = await message.downloadMedia();
+    if (!media) {
+        message.reply('Não consegui processar a mídia. Certifique-se de que está enviando uma imagem ou vídeo.');
+        return;
     }
-};
 
+    await message.reply(media, undefined, { sendMediaAsSticker: true });
+    //console.log('Sticker gerado com sucesso.');
+};
 
 const handleListParticipantsCommand = async (message, chat) => {
     try {
@@ -870,8 +792,24 @@ client.on('message', async (message) => {
     }
 });
 
-// Inicializa o cliente do WhatsApp
+// Inicializa o cliente do WhatsApp + whatdog
 client.initialize();
+
+// Watchdog: reinicia o processo se o bot aparentar estar travado
+setInterval(() => {
+    const dataHora = new Date().toLocaleString('pt-BR');
+    if (!client.info || !client.info.pushname) {
+        console.warn(`[${dataHora}] ⚠️ Watchdog detectou travamento. Reiniciando o processo via PM2...`);
+        process.exit(1); // Isso faz o PM2 reiniciar automaticamente
+    } else {
+        // Opcional: para verificação manual
+        console.log(`[${dataHora}] ✅ Bot ainda responde. Status: ${client.info.pushname}`);
+    }
+}, 60000); // Executa a cada 1 minuto
+
+
+
+
 
 let lastQRCodeBase64 = null;
 // Rota para exibir o QR Code no navegador
@@ -964,7 +902,6 @@ app.get('/qrcode', (req, res) => {
         res.send('<h1>QR Code expirado ou bot já conectado.</h1>');
     }
 });
-
 
 
 
