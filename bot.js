@@ -432,9 +432,23 @@ const handleStickerCommand = async (message) => {
         return;
     }
 
-    await message.reply(media, undefined, { sendMediaAsSticker: true });
-    //console.log('Sticker gerado com sucesso.');
+    try {
+        await message.reply(media, undefined, { sendMediaAsSticker: true });
+    } catch (err) {
+        console.error('Erro ao enviar sticker:', err);
+    }
+
+    // ⚠️ Liberação manual do buffer de mídia
+    media.data = null;
+
+    // Tenta forçar coleta de lixo (funciona se o Node for iniciado com --expose-gc)
+    if (global.gc) {
+        global.gc();
+    } else {
+        console.warn('GC não está exposto. Inicie com node --expose-gc se quiser liberar memória manualmente.');
+    }
 };
+
 
 const handleListParticipantsCommand = async (message, chat) => {
     try {
@@ -591,47 +605,6 @@ const generateQRCode = async (qr) => {
         console.error('Erro ao gerar o QR Code:', err);
     }
 };
-
-// Antes de iniciar o cliente:
-cleanDebugLog()
-
-
-
-// // Função principal para monitorar a conexão e enviar mensagens
-// setInterval(async () => {
-//     const currentDateTime = new Date().toLocaleString(); // Data e hora atual
-//     console.log(`[${currentDateTime}] Verificando conexão do cliente...`);
-
-//     if (!client.info || !client.info.pushname) {
-//         console.log(`[${currentDateTime}] Cliente desconectado. Tentando reconectar...`);
-//         try {
-//             await client.destroy(); // Encerra a sessão
-//             client.initialize();    // Reinicia o cliente
-
-//             // Envia mensagem no grupo informando a desconexão e tentativa de reconexão
-//             await client.sendMessage(GROUP_ID, `⚠️ O bot foi desconectado e está tentando reconectar... [${currentDateTime}]`);
-//         } catch (error) {
-//             console.error(`[${currentDateTime}] Erro ao tentar reconectar:`, error);
-//         }
-//     } else {
-//         console.log(`[${currentDateTime}] Cliente está ativo.`);
-
-//         // Envia mensagem no grupo confirmando que o bot está online
-//         await client.sendMessage(GROUP_ID, `✅ O bot está ativo e funcionando normalmente. [${currentDateTime}]`);
-//     }
-// }, 14400000); // A cada 4 horas
-
-// Eventos do cliente
-client.on('qr', async (qr) => {
-    console.log('Novo QR Code gerado.');
-    qrCodeActive = true;
-    try {
-        await qrcode.toFile('./qrcode.png', qr); // Salva o QR Code como imagem
-        console.log(qr);
-    } catch (err) {
-        console.error('Erro ao gerar o QR Code:', err);
-    }
-});
 
 client.on('ready', () => {
     console.log('Bot conectado e pronto para uso.');
@@ -811,6 +784,9 @@ client.on('qr', async (qr) => {
     qrcodeTerminal.generate(qr, { small: true });
 });
 
+// Antes de iniciar o cliente:
+cleanDebugLog()
+
 // Inicializa o cliente do WhatsApp + whatdog
 client.initialize();
 
@@ -867,10 +843,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
-
-
-
-
-
-
-
