@@ -802,6 +802,17 @@ setInterval(() => {
     }
 }, 600000); // Executa a cada 10 minutos
 
+
+if (!global.gc) {
+    console.warn('⚠️ GC não está exposto. Inicie com --expose-gc para liberar memória manualmente.');
+} else {
+    setInterval(() => {
+        console.log(`[${new Date().toLocaleTimeString()}] 💨 Liberando memória...`);
+        global.gc();
+    }, 5 * 60 * 1000); // a cada 5 minutos
+}
+
+
 app.get('/qrcode', (req, res) => {
     if (qrCodeActive && lastQRCodeBase64) {
         res.send(`
