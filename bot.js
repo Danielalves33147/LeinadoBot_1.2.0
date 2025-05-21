@@ -803,9 +803,9 @@ setInterval(() => {
         process.exit(1); // Isso faz o PM2 reiniciar automaticamente
     } else {
         // Opcional: para verificação manual
-        console.log(`[${dataHora}] ✅ Bot ainda responde. Status: ${client.info.pushname}`);
+        //console.log(`[${dataHora}] ✅ Bot ainda responde. Status: ${client.info.pushname}`);
     }
-}, 60000); // Executa a cada 1 minuto
+}, 600000); // Executa a cada 10 minutos
 
 
 
