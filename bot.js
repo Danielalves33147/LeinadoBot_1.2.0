@@ -10,6 +10,12 @@ const qrcodeTerminal = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
 
+
+const VERSAO = '1.2.0';
+
+const privateCooldown = {}; // { 'userId': timestamp }
+const COOLDOWN_TIME_MS = 5 * 60 * 1000; // 5 minutos
+
 // Configurações do servidor e variáveis
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -99,7 +105,6 @@ const client = new Client({
         dataPath: "./wwebjs_auth",
     }),
     puppeteer: {
-        executablePath: '/usr/bin/google-chrome-stable',
         headless: 'new',
         args: [
             '--no-sandbox',
@@ -114,10 +119,6 @@ const client = new Client({
         ],
     },
 });
-
-
-
-
 
 const executeCommandWithRoleCheck = async (message, allowedRoles, callback) => {
     const chat = await message.getChat(); // Agora o await é válido
@@ -228,7 +229,8 @@ const handleHelpCommand = (message, senderRole) => {
             '*!help* - Listar comandos',
             '*!ping* - Status do bot',
             '*!s* - Cria uma figurinha',
-            '*!dado* <número_de_lados>'
+            '*!dado* <número_de_lados>',
+            '*!contato* - Falar com responsavel'
         ],
     };
 
@@ -250,8 +252,21 @@ const handleHelpCommand = (message, senderRole) => {
         .join('\n\n'); // Separa os blocos com uma linha em branco
 
     // Envia os comandos disponíveis para o usuário
-    message.reply(`📜 *Comandos Disponíveis (${adjustedRole}):*\n\n${availableCommands}`);
+    message.reply(`📜 *Comandos Disponíveis (${adjustedRole}):*\n\n${availableCommands}\n\n🔧 *Versão do Bot:* ${VERSAO}`);
 };
+
+const handleContatoCommand = (message) => {
+    const donoNumero = '557191165170'; // Apenas o número, sem "@c.us"
+    const link = `https://wa.me/${donoNumero}`;
+
+    const resposta = `📞 *Contato com o Dono do Bot*\n\n` +
+        `Se você precisa de ajuda, tem sugestões ou deseja relatar algo:\n` +
+        `➡️ Clique aqui para falar com ele diretamente:\n${link}`;
+
+    message.reply(resposta);
+};
+
+
 
 const handleIOSMentions = async (chat, participants) => {
     try {
@@ -321,7 +336,6 @@ const handleAllCommand = async (message) => {
         message.reply('Algo deu errado, tente novamente!');
     }
 };
-
 
 const handleAddCargoCommand = (message, args) => {
     const [rawUserId, roleKey] = args;
@@ -448,7 +462,6 @@ const handleStickerCommand = async (message) => {
         console.warn('GC não está exposto. Inicie com node --expose-gc se quiser liberar memória manualmente.');
     }
 };
-
 
 const handleListParticipantsCommand = async (message, chat) => {
     try {
@@ -625,7 +638,8 @@ client.on('disconnected', async (reason) => {
 
 client.on('message', async (message) => {
     try {
-        if (!message.body.startsWith('!')) return;
+
+        let groupName = '';
 
         // Inicializa o chat
         const chat = await message.getChat();
@@ -633,6 +647,27 @@ client.on('message', async (message) => {
 
         // Obtenha o ID do autor corretamente
         const userId = isGroup ? message.author : message.from;
+
+        // ⚠️ Verifica se é mensagem no privado sem comando
+        if (!chat.isGroup && !message.body.startsWith('!')) {
+            const userId = message.from;
+            const now = Date.now();
+
+            // Se o usuário já recebeu resposta recentemente, ignora
+            if (privateCooldown[userId] && (now - privateCooldown[userId]) < COOLDOWN_TIME_MS) {
+                return;
+            }
+
+            // Atualiza o tempo da última resposta
+            privateCooldown[userId] = now;
+
+            await message.reply(
+                '🤖 Esta conta é um bot automatizado.\nUse *!help* para ver os comandos disponíveis.'
+            );
+            return;
+        }
+
+        if (!message.body.startsWith('!')) return;
 
         if (isGroup) {
             // Obtém o nome do grupo
@@ -754,6 +789,12 @@ client.on('message', async (message) => {
                 handleNativePollCommand(message);
                 break;
 
+            
+            case '!contato':
+                handleContatoCommand(message);
+                break;
+
+
         
             default:
                 // Comando não reconhecido
@@ -862,4 +903,3 @@ setInterval(() => {
     console.log(`[${agora}] 🔁 Reinicialização preventiva do bot via PM2.`);
     process.exit(1); // PM2 vai reiniciar automaticamente
 }, 1000 * 60 * 60 * 2); // 2 horas
-
